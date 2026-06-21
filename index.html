@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Music Viz">
+<meta name="theme-color" content="#111113">
+<title>Scale, Tuning & Chord Visualizer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#0a0a0b;--surface:#111113;--surface2:#18181c;--surface3:#1f1f24;
+  --border:#252529;--border2:#2e2e34;--text:#e4e2dd;--muted:#636268;--muted2:#4a494f;
+  --gold:#f0a500;--gold-dim:rgba(240,165,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+/* iOS standalone web app — account for status bar */
+@media all and (display-mode:standalone){
+  header{padding-top:max(16px,env(safe-area-inset-top));}
+  body{padding-bottom:env(safe-area-inset-bottom);}
+}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 20px 14px;}
+.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.eyebrow{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:4px;}
+h1{font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.025em;line-height:1;}
+h1 span{color:var(--gold);}
+
+/* MODE TABS */
+.mode-tabs{display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+.mode-tab{padding:8px 14px;cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--muted);border:none;background:none;transition:all .15s;white-space:nowrap;}
+.mode-tab.active{background:var(--gold);color:#000;font-weight:700;}
+
+/* VIEW TOGGLE */
+.view-toggle{display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+.view-btn{padding:7px 12px;cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--muted);border:none;background:none;transition:all .15s;}
+.view-btn.active{background:var(--surface3);color:var(--text);}
+
+/* CONTROLS */
+.controls{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;position:sticky;top:0;z-index:100;}
+.controls-inner{max-width:1100px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+.ctrl-group{display:flex;flex-direction:column;gap:3px;}
+.ctrl-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;}
+select{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500;padding:6px 26px 6px 10px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23636268'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;transition:border-color .15s;}
+select:focus{border-color:var(--gold);}
+.toggle-row{display:flex;gap:3px;}
+.tog-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;padding:6px 8px;cursor:pointer;transition:all .15s;line-height:1;}
+.tog-btn.active{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700;}
+.tuning-badge{font-family:'Space Mono',monospace;font-size:10px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.3);border-radius:5px;color:var(--gold);padding:4px 8px;letter-spacing:.05em;align-self:flex-end;white-space:nowrap;}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
+
+/* FRETBOARD */
+.viz-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,.6);}
+#fretboard-svg{width:100%;height:auto;display:block;min-width:680px;}
+
+/* PIANO */
+.piano-wrap{border-radius:12px;border:1px solid var(--border);background:#0d0d0e;padding:20px 16px 16px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.piano-sub-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;}
+.piano-scroll{min-width:560px;}
+#piano-svg{width:100%;height:auto;display:block;}
+
+/* LEGEND */
+.legend{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.legend-sep{width:1px;height:13px;background:var(--border2);margin:0 1px;}
+
+/* INFO CARD */
+.scale-info{margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:560px){.scale-info{grid-template-columns:1fr;}}
+.ibt{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:7px;}
+.scale-name-display{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px;}
+.scale-name-display span{color:var(--gold);}
+.scale-character{font-size:12px;color:var(--muted);font-style:italic;margin-bottom:10px;}
+.scale-desc{font-size:12px;line-height:1.65;opacity:.85;}
+.intervals-display{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.interval-chip{font-family:'Space Mono',monospace;font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border2);color:var(--muted);}
+.interval-chip.root{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+.interval-chip.tension{border-color:#7b9ea8;color:#7b9ea8;background:rgba(123,158,168,.08);}
+.interval-chip.color-note{border-color:#a07bc8;color:#a07bc8;background:rgba(160,123,200,.08);}
+.genres-display{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.genre-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--surface3);border:1px solid var(--border2);color:var(--muted);}
+.notes-display{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.05em;line-height:2;}
+.notes-display .note-root{color:var(--gold);font-weight:700;}
+
+/* CHORD SECTION */
+.chord-section{margin-top:20px;}
+.section-header{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.section-header::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* CHORD TYPE TABS */
+.chord-type-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px;}
+.chord-type-btn{padding:5px 12px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s;}
+.chord-type-btn.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+
+/* CHORD CARDS GRID */
+.chord-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+
+/* CHORD CARD */
+.chord-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;transition:all .15s;position:relative;}
+.chord-card:hover{border-color:var(--border2);background:var(--surface2);}
+.chord-card.active{border-color:var(--gold);background:var(--gold-dim);}
+.chord-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.chord-card-name span{color:var(--gold);}
+.chord-card-type{font-size:10px;color:var(--muted);margin-bottom:8px;font-style:italic;}
+.chord-card-notes{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted2);margin-top:4px;letter-spacing:.03em;}
+.chord-card-quality{font-size:9px;color:var(--muted2);margin-top:2px;}
+
+/* CHORD DIAGRAM */
+.chord-diagram-wrap{margin-top:4px;}
+/* mini fretboard SVG inside each card */
+.chord-mini-svg{width:100%;height:auto;display:block;}
+
+/* SELECTED CHORD DETAIL */
+.chord-detail{margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:none;}
+.chord-detail.visible{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;}
+@media(max-width:600px){.chord-detail.visible{grid-template-columns:1fr;}}
+.chord-detail-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;}
+.chord-detail-title span{color:var(--gold);}
+.chord-detail-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;}
+.chord-notes-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.chord-note-pill{font-family:'Space Mono',monospace;font-size:11px;padding:3px 9px;border-radius:4px;border:1px solid var(--border2);color:var(--muted);}
+.chord-note-pill.root{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+
+/* SCALE BROWSER */
+.scale-browser{margin-top:24px;}
+.scale-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px;}
+.scale-pill{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 13px;cursor:pointer;transition:all .15s;}
+.scale-pill:hover{border-color:var(--border2);background:var(--surface2);}
+.scale-pill.active{border-color:var(--gold);background:var(--gold-dim);}
+.scale-pill-name{font-size:12px;font-weight:600;color:var(--text);}
+.scale-pill-char{font-size:10px;color:var(--muted);margin-top:2px;}
+.scale-pill-formula{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted2);margin-top:3px;}
+
+/* ── PROGRESSIONS ── */
+.prog-key-strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:stretch;}
+.prog-degree{
+  flex:1;min-width:80px;max-width:140px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px 10px 8px;cursor:pointer;transition:all .18s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  position:relative;
+}
+.prog-degree:hover{border-color:var(--border2);background:var(--surface2);}
+.prog-degree.active{border-color:var(--gold);background:var(--gold-dim);box-shadow:0 0 0 1px var(--gold);}
+.prog-degree.tonic-fn{border-top:2px solid #50c8a0;}
+.prog-degree.subdominant-fn{border-top:2px solid #8b7fe8;}
+.prog-degree.dominant-fn{border-top:2px solid #e05a6a;}
+.prog-numeral{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--text);line-height:1;}
+.prog-chord-name{font-size:13px;font-weight:600;color:var(--gold);}
+.prog-quality{font-size:10px;color:var(--muted);font-style:italic;}
+.prog-function{font-size:8px;font-family:'Space Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.prog-function.T{color:#50c8a0;}
+.prog-function.SD{color:#8b7fe8;}
+.prog-function.D{color:#e05a6a;}
+.prog-notes-mini{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted2);margin-top:3px;text-align:center;}
+
+/* function legend */
+.fn-legend{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+.fn-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.fn-dot{width:10px;height:10px;border-radius:50%;}
+
+/* progression list */
+.prog-list-wrap{margin-top:22px;}
+.prog-category{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin:18px 0 10px;display:flex;align-items:center;gap:10px;}
+.prog-category::after{content:'';flex:1;height:1px;background:var(--border);}
+.prog-items{display:flex;flex-direction:column;gap:8px;}
+.prog-item{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;cursor:pointer;transition:all .15s;
+}
+.prog-item:hover{border-color:var(--border2);background:var(--surface2);}
+.prog-item.playing{border-color:var(--gold);background:var(--gold-dim);}
+.prog-item-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.prog-item-name{font-size:13px;font-weight:600;color:var(--text);min-width:160px;}
+.prog-item-numerals{display:flex;gap:5px;align-items:center;}
+.prog-numeral-chip{
+  font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+  padding:4px 9px;border-radius:5px;border:1px solid var(--border2);
+  color:var(--muted);background:var(--surface2);transition:all .2s;
+  cursor:pointer;
+}
+.prog-numeral-chip.active-step{
+  background:var(--gold);border-color:var(--gold);color:#000;
+  box-shadow:0 0 8px rgba(240,165,0,.4);transform:translateY(-1px);
+}
+.prog-numeral-chip.was-active{opacity:.6;}
+.prog-item-desc{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
+.prog-item-genre{font-size:10px;color:var(--muted2);margin-top:3px;}
+
+/* playback controls */
+.prog-playback{display:flex;gap:6px;align-items:center;margin-top:8px;}
+.play-btn{
+  font-family:'Space Mono',monospace;font-size:10px;
+  padding:5px 12px;border-radius:5px;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .15s;
+}
+.play-btn.on{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700;}
+.prog-step-indicator{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-left:4px;}
+
+/* detail viz below selected progression */
+.prog-viz-wrap{margin-top:16px;display:none;}
+.prog-viz-wrap.visible{display:block;}
+.prog-viz-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — all device sizes
+   ══════════════════════════════════════ */
+
+/* Shared touch improvement */
+@media (hover:none){
+  .mode-tab,.view-btn,.tog-btn,.scale-pill,.chord-card,.prog-degree,
+  .prog-numeral-chip,.play-btn,.chord-type-btn,.prog-item{
+    -webkit-tap-highlight-color:transparent;
+  }
+}
+
+/* ── iPad Pro / large tablet (1024px+) ── */
+@media(max-width:1100px){
+  main{padding:16px 16px 60px;}
+}
+
+/* ── iPad / iPad Mini (768px–1023px) ── */
+@media(max-width:1023px){
+  .header-inner{gap:8px;}
+  .mode-tabs{flex-wrap:wrap;}
+  .mode-tab{padding:7px 11px;font-size:9px;}
+  .chord-cards{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
+  .scale-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+  .prog-degree{min-width:70px;}
+  .prog-numeral{font-size:16px;}
+}
+
+/* ── Large phone landscape / small tablet (600px–767px) ── */
+@media(max-width:767px){
+  header{padding:12px 14px 10px;}
+  .header-inner{flex-direction:column;align-items:flex-start;gap:8px;}
+  .header-inner > div:last-child{width:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .mode-tabs{flex:1;}
+  .mode-tab{flex:1;padding:8px 6px;font-size:9px;text-align:center;}
+  h1{font-size:20px;}
+  .eyebrow{font-size:8px;}
+
+  .controls{padding:8px 14px;}
+  .controls-inner{gap:8px;}
+  select{font-size:13px;padding:8px 26px 8px 10px;}
+  .tog-btn{padding:8px 10px;font-size:10px;}
+
+  main{padding:14px 14px 80px;}
+
+  .scale-info{grid-template-columns:1fr;gap:14px;}
+  .chord-detail.visible{grid-template-columns:1fr;}
+  .chord-cards{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;}
+  .scale-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;}
+
+  .prog-degree{min-width:60px;max-width:none;flex:1;padding:8px 6px;}
+  .prog-numeral{font-size:14px;}
+  .prog-chord-name{font-size:11px;}
+  .prog-quality{font-size:9px;}
+  .prog-function{font-size:7px;}
+  .prog-notes-mini{display:none;}
+  .fn-legend{gap:8px;}
+  .fn-legend-item{font-size:10px;}
+
+  .prog-item-top{flex-direction:column;align-items:flex-start;gap:6px;}
+  .prog-item-name{min-width:unset;font-size:12px;}
+  .prog-item-numerals{flex-wrap:wrap;}
+  .prog-numeral-chip{padding:6px 10px;font-size:11px;}
+
+  .play-btn{padding:7px 14px;font-size:11px;}
+}
+
+/* ── iPhone (up to 430px) — primary mobile target ── */
+@media(max-width:430px){
+  header{padding:10px 12px 8px;padding-top:max(10px,env(safe-area-inset-top));}
+  .eyebrow{display:none;}
+  h1{font-size:17px;}
+
+  /* Mode tabs scroll horizontally instead of wrapping */
+  .mode-tabs{
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;flex-wrap:nowrap;
+    border-radius:8px;width:100%;
+  }
+  .mode-tabs::-webkit-scrollbar{display:none;}
+  .mode-tab{padding:9px 12px;font-size:9px;white-space:nowrap;flex-shrink:0;}
+
+  .view-toggle{flex-shrink:0;}
+  .view-btn{padding:8px 10px;font-size:9px;}
+
+  .controls{padding:8px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .controls-inner{flex-wrap:nowrap;gap:8px;min-width:max-content;}
+  .ctrl-group{flex-shrink:0;}
+  .ctrl-label{font-size:8px;}
+  select{font-size:12px;padding:9px 24px 9px 9px;min-width:120px;}
+  .tog-btn{padding:9px 11px;font-size:10px;min-width:36px;text-align:center;}
+  #tuning-badge-wrap{display:none;} /* hide badge on small screens, saves space */
+
+  main{padding:12px 12px 100px;}
+
+  /* Scale mode */
+  .legend{gap:5px;margin-top:10px;}
+  .legend-item{font-size:10px;}
+  .scale-info{padding:14px;gap:12px;}
+  .scale-name-display{font-size:16px;}
+  .scale-character{font-size:11px;}
+  .scale-desc{font-size:11px;}
+  .scale-grid{grid-template-columns:1fr 1fr;gap:5px;}
+  .scale-pill{padding:8px 10px;}
+  .scale-pill-name{font-size:11px;}
+  .scale-pill-char{font-size:9px;}
+  .scale-pill-formula{display:none;}
+
+  /* Chord mode */
+  .chord-type-tabs{gap:4px;}
+  .chord-type-btn{padding:7px 10px;font-size:10px;}
+  .chord-cards{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;}
+  .chord-card{padding:8px;}
+  .chord-card-name{font-size:12px;}
+  .chord-card-type{font-size:9px;}
+  .chord-detail{padding:14px;}
+  .chord-detail-title{font-size:18px;}
+  .chord-notes-row{gap:4px;}
+  .chord-note-pill{font-size:10px;padding:3px 7px;}
+
+  /* Progression mode */
+  .prog-key-strip{gap:5px;}
+  .prog-degree{min-width:0;padding:7px 4px;border-radius:8px;}
+  .prog-numeral{font-size:13px;}
+  .prog-chord-name{font-size:10px;}
+  .prog-quality,.prog-function,.prog-notes-mini{display:none;}
+  .fn-legend{display:none;} /* hide on very small screens */
+  #prog-key-label{font-size:8px;}
+
+  .prog-item{padding:10px 12px;}
+  .prog-item-name{font-size:12px;}
+  .prog-item-desc{font-size:10px;}
+  .prog-item-genre{font-size:9px;}
+  .prog-numeral-chip{padding:7px 10px;font-size:11px;}
+  .play-btn{padding:8px 14px;font-size:11px;}
+
+  /* Help page */
+  #mode-help > div > h2{font-size:18px;}
+
+  /* Bottom padding for iPhone home indicator */
+  main{padding-bottom:max(100px,calc(80px + env(safe-area-inset-bottom)));}
+}
+
+/* ── iPhone SE / very small (up to 375px) ── */
+@media(max-width:375px){
+  h1{font-size:15px;}
+  .chord-cards{grid-template-columns:1fr 1fr;}
+  .scale-grid{grid-template-columns:1fr 1fr;}
+  .prog-numeral{font-size:12px;}
+  .prog-chord-name{font-size:9px;}
+}
+
+/* ── Landscape phone ── */
+@media(max-width:812px) and (orientation:landscape){
+  header{padding:6px 16px;}
+  h1{font-size:16px;}
+  .eyebrow{display:none;}
+  .controls{padding:6px 16px;}
+  main{padding:10px 16px 40px;}
+  .prog-degree{padding:5px 6px;}
+  .prog-numeral{font-size:13px;}
+  .fn-legend{display:none;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="eyebrow">Interactive Reference</div>
+      <h1>Scale, Tuning <span>&</span> Chord Visualizer</h1>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="mode-tabs">
+        <button class="mode-tab active" onclick="setMode('scale')">SCALES</button>
+        <button class="mode-tab" onclick="setMode('chord')">CHORDS</button>
+        <button class="mode-tab" onclick="setMode('prog')">PROGRESSIONS</button>
+        <button class="mode-tab" onclick="setMode('help')">HOW TO USE</button>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-guitar" onclick="setView('guitar')">🎸 GUITAR</button>
+        <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 PIANO</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Root Note</div>
+      <select id="root-select"></select>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Scale</div>
+      <select id="scale-select"></select>
+    </div>
+    <div class="ctrl-group" id="tuning-group">
+      <div class="ctrl-label">Tuning</div>
+      <select id="tuning-select"></select>
+    </div>
+    <div class="ctrl-group" id="frets-group">
+      <div class="ctrl-label">Frets</div>
+      <div class="toggle-row">
+        <button class="tog-btn active" data-frets="12">12</button>
+        <button class="tog-btn" data-frets="15">15</button>
+        <button class="tog-btn" data-frets="17">17</button>
+      </div>
+    </div>
+    <div class="ctrl-group" id="octaves-group" style="display:none">
+      <div class="ctrl-label">Octaves</div>
+      <div class="toggle-row">
+        <button class="tog-btn" data-oct="1">1</button>
+        <button class="tog-btn active" data-oct="2">2</button>
+        <button class="tog-btn" data-oct="3">3</button>
+      </div>
+    </div>
+    <div id="tuning-badge-wrap"></div>
+  </div>
+</div>
+
+<main>
+  <!-- SCALE MODE -->
+  <div id="mode-scale">
+    <div id="guitar-view-scale">
+      <div class="viz-wrap">
+        <svg id="fretboard-svg" viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+    <div id="piano-view-scale" style="display:none">
+      <div class="piano-wrap">
+        <div class="piano-sub-label">Scale tones across the keyboard</div>
+        <div class="piano-scroll"><svg id="piano-svg-scale" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="scale-info" id="scale-info"></div>
+    <div class="scale-browser" style="margin-top:24px;">
+      <div class="section-header">All Scales</div>
+      <div class="scale-grid" id="scale-grid"></div>
+    </div>
+  </div>
+
+  <!-- CHORD MODE -->
+  <div id="mode-chord" style="display:none">
+    <div class="chord-section">
+      <div class="section-header" id="chord-section-title">Diatonic Chords</div>
+      <div class="chord-type-tabs" id="chord-type-tabs"></div>
+      <div class="chord-cards" id="chord-cards"></div>
+    </div>
+
+    <!-- Selected chord detail -->
+    <div class="chord-detail" id="chord-detail">
+      <div id="chord-detail-diagram"></div>
+      <div>
+        <div class="chord-detail-title" id="chord-detail-title"></div>
+        <div id="chord-detail-notes"></div>
+        <div class="chord-detail-desc" id="chord-detail-desc"></div>
+        <!-- Piano for chord -->
+        <div style="margin-top:14px;display:none" id="chord-piano-wrap">
+          <div class="piano-sub-label">Chord tones on keyboard</div>
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <svg id="piano-svg-chord" viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="min-width:400px;width:100%;height:auto;display:block;"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chord fretboard (guitar view) -->
+    <div id="chord-fretboard-wrap" style="display:none;margin-top:16px;">
+      <div class="viz-wrap">
+        <svg id="chord-fretboard-svg" viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+
+    <!-- Full chord piano (piano view) -->
+    <div id="chord-full-piano-wrap" style="display:none;margin-top:16px;">
+      <div class="piano-wrap">
+        <div class="piano-sub-label">Chord across the keyboard</div>
+        <div class="piano-scroll">
+          <svg id="chord-full-piano-svg" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg" style="min-width:560px;width:100%;height:auto;display:block;"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESSIONS MODE -->
+  <div id="mode-prog" style="display:none">
+    <!-- Diatonic chord strip -->
+    <div style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;" id="prog-key-label"></div>
+      <div class="fn-legend">
+        <div class="fn-legend-item"><div class="fn-dot" style="background:#50c8a0"></div>Tonic (T) — rest &amp; home</div>
+        <div class="fn-legend-item"><div class="fn-dot" style="background:#8b7fe8"></div>Subdominant (SD) — movement</div>
+        <div class="fn-legend-item"><div class="fn-dot" style="background:#e05a6a"></div>Dominant (D) — tension</div>
+      </div>
+    </div>
+    <div class="prog-key-strip" id="prog-key-strip"></div>
+
+    <!-- Active chord viz -->
+    <div class="prog-viz-wrap" id="prog-viz-wrap">
+      <!-- Chord name + info -->
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+        <div class="prog-viz-label" id="prog-viz-label" style="margin-bottom:0"></div>
+        <div id="prog-viz-notes" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em"></div>
+      </div>
+      <!-- Mini chord diagrams row (one per string set voicing) -->
+      <div id="prog-chord-diagrams" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-start;"></div>
+      <!-- Full neck / piano -->
+      <div id="prog-guitar-viz">
+        <div class="viz-wrap"><svg id="prog-fretboard-svg" viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
+      <div id="prog-piano-viz" style="display:none">
+        <div class="piano-wrap">
+          <div class="piano-scroll"><svg id="prog-piano-svg" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg" style="min-width:560px;width:100%;height:auto;display:block;"></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Common progressions list -->
+    <div class="prog-list-wrap" id="prog-list-wrap"></div>
+  </div>
+  <!-- HELP MODE -->
+  <div id="mode-help" style="display:none;padding-top:4px;"></div>
+</main>
+
+<script>
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+const NOTE_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const NOTE_FLAT  = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+
+const TUNINGS = {
+  standard:[40,45,50,55,59,64], eb_standard:[39,44,49,54,58,63],
+  d_standard:[38,43,48,53,57,62], c_standard:[36,41,46,51,55,60],
+  drop_d:[38,45,50,55,59,64], drop_cs:[37,44,49,54,58,63],
+  drop_c:[36,43,48,53,57,62], drop_as:[34,41,46,51,55,60],
+  drop_a:[33,40,45,50,54,59], dadgad:[38,45,50,55,57,62],
+  dadgad_flat:[37,44,49,54,56,61], dadgad_down:[36,43,48,53,55,60],
+  open_g:[38,43,50,55,59,62], open_d:[38,45,50,54,57,62],
+  open_e:[40,47,52,56,59,64], open_a:[40,45,52,57,61,64],
+  open_c:[36,43,48,55,60,64], open_dm:[38,45,50,53,57,62],
+  double_drop_d:[38,45,50,55,59,62], nst:[36,43,50,57,64,67],
+};
+const TUNING_LABELS = {
+  standard:'Standard (E A D G B e)', eb_standard:'E♭ Standard',
+  d_standard:'D Standard', c_standard:'C Standard',
+  drop_d:'Drop D', drop_cs:'Drop C♯', drop_c:'Drop C',
+  drop_as:'Drop A♯', drop_a:'Drop A', dadgad:'DADGAD',
+  dadgad_flat:'DADGAD ♭', dadgad_down:'DADGAD −1 step',
+  open_g:'Open G', open_d:'Open D', open_e:'Open E',
+  open_a:'Open A', open_c:'Open C', open_dm:'Open Dm',
+  double_drop_d:'Double Drop D', nst:'New Standard Tuning',
+};
+const TUNING_NOTES = {
+  standard:'E A D G B e', eb_standard:'E♭ A♭ D♭ G♭ B♭ e♭',
+  d_standard:'D G C F A d', c_standard:'C F B♭ E♭ G c',
+  drop_d:'D A D G B e', drop_cs:'C♯ A♭ D♭ G♭ B♭ e♭',
+  drop_c:'C G C F A d', drop_as:'A♯ F B♭ E♭ G c',
+  drop_a:'A E A D F♯ b', dadgad:'D A D G A d',
+  dadgad_flat:'C♯ A♭ D♭ G♭ A♭ d♭', dadgad_down:'C G C F G c',
+  open_g:'D G D G B d', open_d:'D A D F♯ A d',
+  open_e:'E B E G♯ B e', open_a:'E A E A C♯ e',
+  open_c:'C G C G C e', open_dm:'D A D F A d',
+  double_drop_d:'D A D G B d', nst:'C G D A E g',
+};
+
+const INTERVAL_COLORS = {
+  0:'#f0a500',1:'#e05a6a',2:'#60b8d0',3:'#7dc85a',4:'#a0c860',
+  5:'#8b7fe8',6:'#e07a30',7:'#50c8a0',8:'#d060b8',9:'#60a8d0',
+  10:'#e0c040',11:'#c07040'
+};
+const INTERVAL_LABELS = {0:'R',1:'♭2',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♭6',9:'6',10:'♭7',11:'7'};
+
+// Chord quality definitions [intervals from root]
+const CHORD_TYPES = {
+  triad: {
+    label:'Triads',
+    shapes:{
+      maj:   {name:'Major',    short:'',    intervals:[0,4,7],  desc:'Bright and stable — the most common chord in music. Three notes: root, major 3rd, perfect 5th.'},
+      min:   {name:'Minor',    short:'m',   intervals:[0,3,7],  desc:'Darker and more emotional than major. Root, minor 3rd, perfect 5th.'},
+      dim:   {name:'Diminished',short:'°',  intervals:[0,3,6],  desc:'Tense and unstable — two minor 3rds stacked. Wants desperately to resolve.'},
+      aug:   {name:'Augmented',short:'+',   intervals:[0,4,8],  desc:'Dreamy and unresolved — two major 3rds stacked. Common in chromatic harmony.'},
+      sus2:  {name:'Sus2',     short:'sus2',intervals:[0,2,7],  desc:'No 3rd — replaced by a 2nd. Ambiguous, open, floating. Neither major nor minor.'},
+      sus4:  {name:'Sus4',     short:'sus4',intervals:[0,5,7],  desc:'No 3rd — replaced by a 4th. Creates tension that wants to resolve back to major.'},
+    }
+  },
+  seventh: {
+    label:'7th Chords',
+    shapes:{
+      maj7:  {name:'Major 7th',    short:'maj7', intervals:[0,4,7,11], desc:'Warm and sophisticated. The 7th adds a dreamy quality above the major triad. Jazz staple.'},
+      dom7:  {name:'Dominant 7th', short:'7',    intervals:[0,4,7,10], desc:'The most harmonically tense chord — naturally wants to resolve to a chord a 4th up. Blues and jazz backbone.'},
+      min7:  {name:'Minor 7th',    short:'m7',   intervals:[0,3,7,10], desc:'Smooth and mellow. Minor triad with a ♭7 on top. The foundation of jazz and soul harmony.'},
+      m7b5:  {name:'Half-Dim',     short:'ø7',   intervals:[0,3,6,10], desc:'Half-diminished: diminished triad + minor 7th. More usable than full dim7. Common in jazz ii-V-I.'},
+      dim7:  {name:'Dim 7th',      short:'°7',   intervals:[0,3,6,9],  desc:'Fully diminished 7th — symmetrical every 3 semitones. Maximum tension, can resolve in 4 directions.'},
+      minmaj7:{name:'Minor-Major 7',short:'mMaj7',intervals:[0,3,7,11],desc:'Mysterious and cinematic — minor triad with a major 7th. Common in film scores and spy themes.'},
+      maj7s5:{name:'Augmented Maj7',short:'+maj7',intervals:[0,4,8,11],desc:'Augmented triad with major 7th. Dreamy and chromatic — used in jazz and impressionist music.'},
+      aug7:  {name:'Augmented 7th',short:'+7',   intervals:[0,4,8,10], desc:'Augmented triad with ♭7. Creates extreme tension wanting resolution — used in dominant function contexts.'},
+    }
+  },
+  extended: {
+    label:'Extended',
+    shapes:{
+      maj9:  {name:'Major 9th',    short:'maj9', intervals:[0,4,7,11,2],  desc:'Major 7th chord with added 9th (=2nd). Lush and open — a favourite in pop ballads and jazz.'},
+      dom9:  {name:'Dominant 9th', short:'9',    intervals:[0,4,7,10,2],  desc:'Dominant 7th + 9th. Full, rich, and funky. Jimi Hendrix and Stevie Wonder territory.'},
+      min9:  {name:'Minor 9th',    short:'m9',   intervals:[0,3,7,10,2],  desc:'Minor 7th + 9th. Silky, sophisticated. The default chord for neo-soul and smooth jazz.'},
+      maj11: {name:'Major 11th',   short:'maj11',intervals:[0,4,7,11,2,5],desc:'Full major scale stacked in 3rds. Very open — often voiced without the 3rd to avoid clashing.'},
+      dom11: {name:'Dominant 11th',short:'11',   intervals:[0,4,7,10,2,5],desc:'Dominant with 9th and 11th added. Ambiguous and modern — favored in jazz and funk.'},
+      min11: {name:'Minor 11th',   short:'m11',  intervals:[0,3,7,10,2,5],desc:'Minor 7th + 9th + 11th. Deep and smooth — used in jazz harmony and ambient music.'},
+    }
+  },
+  added: {
+    label:'Add / Other',
+    shapes:{
+      add9:  {name:'Add9',         short:'add9', intervals:[0,4,7,2],     desc:'Major triad with an added 9th — no 7th. Brighter and simpler than maj9. Pop and rock workhorse.'},
+      madd9: {name:'Minor Add9',   short:'madd9',intervals:[0,3,7,2],     desc:'Minor triad with added 9th. Evocative and open. Common in modern indie and film music.'},
+      six:   {name:'Major 6th',    short:'6',    intervals:[0,4,7,9],     desc:'Major triad + 6th. Nostalgic and warm — common in swing, jazz standards, and bossa nova.'},
+      min6:  {name:'Minor 6th',    short:'m6',   intervals:[0,3,7,9],     desc:'Minor triad + major 6th. Bittersweet and distinctive. Django Reinhardt and Ravel loved it.'},
+      six9:  {name:'6/9',          short:'6/9',  intervals:[0,4,7,9,2],   desc:'Major triad + 6th + 9th, no 7th. Very open and modern. A Prince and jazz classic.'},
+      pow:   {name:'Power Chord',  short:'5',    intervals:[0,7],         desc:'Just root + 5th. No 3rd means it\'s neither major nor minor. The foundation of rock and metal.'},
+    }
+  }
+};
+
+const SCALES = {
+  major:{name:'Major',fullName:'Major (Ionian)',intervals:[0,2,4,5,7,9,11],formula:'W W H W W W H',character:'Bright, happy, resolved',description:'The foundational scale of Western music. Seven notes, all diatonic to the key.',genres:['Pop','Rock','Country','Classical','Jazz'],intervalNames:['R','2','3','4','5','6','7']},
+  natural_minor:{name:'Natural Minor',fullName:'Natural Minor (Aeolian)',intervals:[0,2,3,5,7,8,10],formula:'W H W W H W W',character:'Dark, melancholic, emotional',description:'The natural minor lowers the 3rd, 6th, and 7th of the major scale. Relative minor of the major scale.',genres:['Rock','Metal','Classical','Pop','Blues'],intervalNames:['R','2','♭3','4','5','♭6','♭7']},
+  harmonic_minor:{name:'Harmonic Minor',intervals:[0,2,3,5,7,8,11],formula:'W H W W H Aug2 H',character:'Exotic, dramatic, classical',description:'Natural minor with a raised 7th. Creates a strong V7 chord and an augmented 2nd — the "Arabian nights" gap.',genres:['Classical','Metal','Flamenco','Middle Eastern'],intervalNames:['R','2','♭3','4','5','♭6','7']},
+  melodic_minor:{name:'Melodic Minor',intervals:[0,2,3,5,7,9,11],formula:'W H W W W W H',character:'Sophisticated, fluid, bittersweet',description:'Minor with raised 6th and 7th. A "major scale with a flat 3rd." Jazz musicians use it as a static modern sound.',genres:['Jazz','Classical','Fusion'],intervalNames:['R','2','♭3','4','5','6','7']},
+  pentatonic_major:{name:'Major Pentatonic',intervals:[0,2,4,7,9],formula:'W W m3 W m3',character:'Open, positive, folk-like',description:'Major scale without the 4th and 7th. No half-step tensions — every note sounds good over the key.',genres:['Country','Pop','Folk','Rock','World'],intervalNames:['R','2','3','5','6']},
+  pentatonic_minor:{name:'Minor Pentatonic',intervals:[0,3,5,7,10],formula:'m3 W W m3 W',character:'Gritty, soulful, versatile',description:'The most-used scale in rock, blues, and soul. Five notes, zero wrong answers.',genres:['Rock','Blues','Soul','Metal','R&B'],intervalNames:['R','♭3','4','5','♭7']},
+  blues:{name:'Blues Scale',intervals:[0,3,5,6,7,10],formula:'m3 W H H m3 W',character:'Soulful, raw, bending',description:'Minor pentatonic + the blue note (♭5). That tritone creates aching chromatic tension.',genres:['Blues','Rock','Jazz','Soul','R&B'],intervalNames:['R','♭3','4','♭5','5','♭7']},
+  dorian:{name:'Dorian',intervals:[0,2,3,5,7,9,10],formula:'W H W W W H W',character:'Minor but brighter, soulful',description:'Natural minor with a raised 6th. The "hip" minor — darker than major but brighter than natural minor.',genres:['Jazz','Funk','Rock','Soul'],intervalNames:['R','2','♭3','4','5','6','♭7']},
+  phrygian:{name:'Phrygian',intervals:[0,1,3,5,7,8,10],formula:'H W W W H W W',character:'Dark, Spanish, tense',description:'Natural minor with a ♭2. Gives a Spanish/Flamenco character and a sense of imminent danger.',genres:['Metal','Flamenco','Spanish','Classical'],intervalNames:['R','♭2','♭3','4','5','♭6','♭7']},
+  lydian:{name:'Lydian',intervals:[0,2,4,6,7,9,11],formula:'W W W H W W H',character:'Dreamy, floating, magical',description:'Major scale with a raised 4th. That ♯4 gives a floaty, ethereal quality — like the major scale but slightly "off."',genres:['Film','Jazz','Prog Rock','New Age'],intervalNames:['R','2','3','♯4','5','6','7']},
+  mixolydian:{name:'Mixolydian',intervals:[0,2,4,5,7,9,10],formula:'W W H W W H W',character:'Bluesy major, rock, swagger',description:'Major scale with a ♭7. Defines blues-based rock — allows a dominant 7th chord on the I chord.',genres:['Rock','Blues','Folk','Funk','Country'],intervalNames:['R','2','3','4','5','6','♭7']},
+  locrian:{name:'Locrian',intervals:[0,1,3,5,6,8,10],formula:'H W W H W W W',character:'Unstable, dissonant, theoretical',description:'The darkest mode. The ♭5 makes the tonic chord diminished — nearly impossible to establish a stable tonal center.',genres:['Metal','Experimental','Theory'],intervalNames:['R','♭2','♭3','4','♭5','♭6','♭7']},
+  whole_tone:{name:'Whole Tone',intervals:[0,2,4,6,8,10],formula:'W W W W W W',character:'Ambiguous, dreamlike, hovering',description:'Six notes, all whole steps apart — totally symmetrical. Never resolves. Debussy\'s impressionist haze.',genres:['Jazz','Impressionist','Film','Experimental'],intervalNames:['R','2','3','♯4','♯5','♭7']},
+  diminished:{name:'Diminished',intervals:[0,1,3,4,6,7,9,10],formula:'H W H W H W H W',character:'Tense, symmetrical, jazz/metal',description:'Eight notes alternating half and whole steps. Symmetrical every 3 semitones. Creates enormous tension.',genres:['Jazz','Metal','Horror Film','Classical'],intervalNames:['R','♭2','♭3','3','♯4','5','6','♭7']},
+  augmented:{name:'Augmented',intervals:[0,3,4,7,8,11],formula:'m3 H m3 H m3 H',character:'Mysterious, unsettling',description:'Six notes alternating minor 3rd and half steps. Implies augmented triads stacked — otherworldly feeling.',genres:['Jazz','Classical','Experimental'],intervalNames:['R','♭3','3','5','♯5','7']},
+  phrygian_dominant:{name:'Phrygian Dominant',intervals:[0,1,4,5,7,8,10],formula:'H Aug2 H W H W W',character:'Flamenco, Middle Eastern, tense',description:'Phrygian with a raised 3rd. The quintessential Spanish/Flamenco and Middle Eastern sound.',genres:['Flamenco','Middle Eastern','Metal','Spanish'],intervalNames:['R','♭2','3','4','5','♭6','♭7']},
+  double_harmonic:{name:'Double Harmonic',intervals:[0,1,4,5,7,8,11],formula:'H Aug2 H W H Aug2 H',character:'Exotic, Arabian, dramatic',description:'Two augmented 2nd intervals. Called Byzantine, Arabic, or Gypsy Major. Two tension points that never resolve.',genres:['Middle Eastern','Byzantine','Film','Metal'],intervalNames:['R','♭2','3','4','5','♭6','7']},
+  hungarian_minor:{name:'Gypsy Minor',intervals:[0,2,3,6,7,8,11],formula:'W H Aug2 H H Aug2 H',character:'Dramatic, Gypsy, passionate',description:'Harmonic minor with a raised 4th. Intense, fiery Romani character. Django Reinhardt\'s signature.',genres:['Gypsy Jazz','Eastern European','Flamenco'],intervalNames:['R','2','♭3','♯4','5','♭6','7']},
+  gypsy_major:{name:'Gypsy Major',intervals:[0,2,3,6,7,9,10],formula:'W H Aug2 H W H W',character:'Wild, Romani, unpredictable',description:'Similar to Hungarian Minor but with natural 6th and ♭7. Even more distinctive and colorful.',genres:['Gypsy','Eastern European','World'],intervalNames:['R','2','♭3','♯4','5','6','♭7']},
+  egyptian:{name:'Egyptian',intervals:[0,2,5,7,10],formula:'W m3 W m3 W',character:'Ancient, open, suspended',description:'Pentatonic built on suspended intervals. No 3rd — neither major nor minor. Open, timeless.',genres:['World','Ambient','New Age','Film'],intervalNames:['R','2','4','5','♭7']},
+  japanese:{name:'Japanese In Sen',intervals:[0,1,5,7,10],formula:'H P4 W m3 W',character:'Sparse, haunting, Eastern',description:'Traditional Japanese pentatonic. The ♭2 and ♭7 with only 5 notes creates maximum space between notes.',genres:['Japanese','World','Ambient','Film'],intervalNames:['R','♭2','4','5','♭7']},
+  hirajoshi:{name:'Hirajoshi',intervals:[0,2,3,7,8],formula:'W H P4 H P4',character:'Japanese, introspective, wistful',description:'Traditional Japanese koto tuning as a scale. Two semitone clusters separated by perfect 4ths.',genres:['Japanese','World','Prog Rock'],intervalNames:['R','2','♭3','5','♭6']},
+  enigmatic:{name:'Enigmatic',intervals:[0,1,4,6,8,10,11],formula:'H Aug2 W W W H H',character:'Puzzle-like, unresolved',description:'Verdi\'s deliberately unresolvable scale. One of the most harmonically unstable in Western music.',genres:['Classical','Experimental','Theory'],intervalNames:['R','♭2','3','♯4','♯5','♭7','7']},
+  prometheus:{name:'Prometheus',intervals:[0,2,4,6,9,10],formula:'W W W m3 H W',character:'Mystical, impressionist, luminous',description:'Scriabin\'s mystic chord as a scale. No perfect 5th — floats in harmonic suspension.',genres:['Classical','Impressionist','Experimental'],intervalNames:['R','2','3','♯4','6','♭7']},
+};
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let currentRoot=4,currentScale='major',currentTuning='standard';
+let numFrets=12,numOctaves=2;
+let currentView='guitar',currentMode='scale';
+let currentChordType='triad',selectedChord=null;
+
+const pc=m=>((m%12)+12)%12;
+function getScaleSet(r,sk){return new Set(SCALES[sk].intervals.map(i=>(r+i)%12));}
+function getIv(np,r,ivs){const d=((np-r)+12)%12;return ivs.includes(d)?d:null;}
+
+// ════════════════════════════════════════
+// SVG HELPERS
+// ════════════════════════════════════════
+function svgEl(tag,attrs,text){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(const[k,v] of Object.entries(attrs))el.setAttribute(k,String(v));
+  if(text!==undefined)el.textContent=text;
+  return el;
+}
+
+// ════════════════════════════════════════
+// FRETBOARD (scale or chord highlight)
+// ════════════════════════════════════════
+function drawFretboard(svgId, highlightSet, intervalMap, openStrings, N, showOctave=false){
+  const svg=document.getElementById(svgId);
+  svg.innerHTML='';
+  const SW=960,SH=220,NX=52,FAW=SW-NX-16,ST=28,SB=SH-28;
+  const fx=f=>f===0?NX:NX+(f/N)*FAW;
+  const sy=s=>ST+(5-s)*((SB-ST)/5);
+  const fXs=Array.from({length:N+1},(_,f)=>fx(f));
+
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:SW,height:SH,fill:'#1a120a'}));
+  for(let i=0;i<8;i++)svg.appendChild(svgEl('line',{x1:0,y1:12+i*28,x2:SW,y2:15+i*28,stroke:'#1e1408','stroke-width':4}));
+
+  for(const f of [3,5,7,9,12,15,17].filter(f=>f<=N)){
+    const x=(fXs[f-1]+fXs[f])/2;
+    if(f===12){svg.appendChild(svgEl('circle',{cx:x,cy:sy(1.5),r:5,fill:'#1e2830'}));svg.appendChild(svgEl('circle',{cx:x,cy:sy(3.5),r:5,fill:'#1e2830'}));}
+    else svg.appendChild(svgEl('circle',{cx:x,cy:SH/2,r:5,fill:'#1e2830'}));
+  }
+  for(let f=1;f<=N;f++){
+    const x=fXs[f];
+    svg.appendChild(svgEl('line',{x1:x,y1:ST-8,x2:x,y2:SB+8,stroke:'#4a4030','stroke-width':f===12?3:1.5}));
+  }
+  svg.appendChild(svgEl('rect',{x:NX-5,y:ST-10,width:6,height:SB-ST+20,fill:'#c8b882'}));
+  const th=[2.4,1.9,1.5,1.2,0.9,0.7];
+  for(let s=0;s<6;s++){
+    const y=sy(s);
+    svg.appendChild(svgEl('line',{x1:NX,y1:y,x2:SW-16,y2:y,stroke:'#7a6840','stroke-width':th[5-s]}));
+  }
+  for(let f=1;f<=N;f++){
+    const x=(fXs[f-1]+fXs[f])/2;
+    svg.appendChild(svgEl('text',{x,y:SH-6,'font-size':8,fill:'#3a3830','font-family':'Space Mono, monospace','text-anchor':'middle'},String(f)));
+  }
+  for(let s=0;s<6;s++){
+    const y=sy(s);
+    const notePc=pc(openStrings[s]);
+    const inSet=highlightSet.has(notePc);
+    const isRoot=intervalMap&&intervalMap[notePc]===0;
+    const t=svgEl('text',{x:NX-10,y:y+4,'font-size':10,fill:isRoot?'#f0a500':inSet?'#a0a098':'#3a3830','font-family':'Space Grotesk, sans-serif','font-weight':600,'text-anchor':'middle'},NOTE_NAMES[notePc]);
+    svg.appendChild(t);
+  }
+  for(let s=0;s<6;s++){
+    const y=sy(s);
+    for(let f=0;f<=N;f++){
+      const notePc=pc(openStrings[s]+f);
+      if(!highlightSet.has(notePc))continue;
+      const iv=intervalMap?intervalMap[notePc]:null;
+      const color=iv!==null?INTERVAL_COLORS[iv]:'#888';
+      const isRoot=iv===0;
+      const x=f===0?NX:(fXs[f-1]+fXs[f])/2;
+      const r=isRoot?12:10;
+      svg.appendChild(svgEl('circle',{cx:x+1,cy:y+1,r,fill:'rgba(0,0,0,0.5)'}));
+      if(isRoot)svg.appendChild(svgEl('circle',{cx:x,cy:y,r:r+1.5,fill:'none',stroke:color,'stroke-width':2}));
+      svg.appendChild(svgEl('circle',{cx:x,cy:y,r,fill:isRoot?color:color+'28',stroke:color,'stroke-width':isRoot?0:1.5}));
+      const lbl=isRoot?NOTE_NAMES[notePc]:INTERVAL_LABELS[iv!==null?iv:0];
+      svg.appendChild(svgEl('text',{x,y:y+4,'font-size':isRoot?9:8,fill:isRoot?'#000':color,'font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+    }
+  }
+}
+
+// ════════════════════════════════════════
+// MINI PIANO (for chord cards)
+// ════════════════════════════════════════
+function drawMiniPiano(svg, highlightSet, intervalMap){
+  // 1 octave, 7 white keys
+  const W=110,H=52,whiteW=W/7,whiteH=H-14,blackW=whiteW*0.6,blackH=whiteH*0.58;
+  const whitePattern=[0,2,4,5,7,9,11];
+  const blackAfter=[0,1,3,4,5];
+  const blackSemi=[1,3,6,8,10];
+  const startMidi=60; // C4
+
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'transparent'}));
+
+  // White keys
+  for(let wi=0;wi<7;wi++){
+    const mpc=((startMidi+whitePattern[wi])%12);
+    const inSet=highlightSet.has(mpc);
+    const iv=intervalMap?intervalMap[mpc]:null;
+    const isRoot=iv===0;
+    const color=iv!==null?INTERVAL_COLORS[iv]:null;
+    const x=wi*whiteW;
+    let fill='#2a2a2e';
+    if(isRoot)fill=INTERVAL_COLORS[0];
+    else if(inSet&&color)fill=color+'99';
+    svg.appendChild(svgEl('rect',{x:x+0.5,y:0,width:whiteW-1,height:whiteH,fill,rx:2,ry:2,stroke:'#1a1a1e','stroke-width':0.5}));
+    if(inSet){
+      const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv!==null?iv:0];
+      svg.appendChild(svgEl('text',{x:x+whiteW/2,y:whiteH-4,'font-size':6,fill:isRoot?'#000':'#000b','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+    }
+  }
+  // Black keys
+  for(let bi=0;bi<5;bi++){
+    const mpc=((startMidi+blackSemi[bi])%12);
+    const inSet=highlightSet.has(mpc);
+    const iv=intervalMap?intervalMap[mpc]:null;
+    const isRoot=iv===0;
+    const color=iv!==null?INTERVAL_COLORS[iv]:null;
+    const x=blackAfter[bi]*whiteW+whiteW-blackW/2;
+    let fill='#111';
+    if(isRoot)fill=INTERVAL_COLORS[0];
+    else if(inSet&&color)fill=color;
+    svg.appendChild(svgEl('rect',{x,y:0,width:blackW,height:blackH,fill,rx:1.5,ry:1.5}));
+    if(inSet){
+      const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv!==null?iv:0];
+      svg.appendChild(svgEl('text',{x:x+blackW/2,y:blackH-4,'font-size':5.5,fill:isRoot?'#000':'#fff','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+    }
+  }
+  // Note name labels under keyboard
+  for(let wi=0;wi<7;wi++){
+    const mpc=((startMidi+whitePattern[wi])%12);
+    const x=wi*whiteW;
+    svg.appendChild(svgEl('text',{x:x+whiteW/2,y:H-2,'font-size':5,fill:'#3a3830','font-family':'Space Mono, monospace','text-anchor':'middle'},NOTE_NAMES[mpc]));
+  }
+}
+
+// ════════════════════════════════════════
+// PIANO DRAW
+// ════════════════════════════════════════
+function drawPiano(svgId,highlightSet,intervalMap,octaves,viewW,viewH){
+  const svg=document.getElementById(svgId);
+  svg.innerHTML='';
+  const W=viewW||840,H=viewH||180;
+  const startMidi=48; // C3
+  const whiteW=W/(octaves*7),whiteH=H-28;
+  const blackW=whiteW*0.6,blackH=whiteH*0.62;
+  const whitePattern=[0,2,4,5,7,9,11];
+  const blackAfter=[0,1,3,4,5];
+  const blackSemi=[1,3,6,8,10];
+
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'#0d0d0e'}));
+
+  for(let oct=0;oct<octaves;oct++){
+    for(let wi=0;wi<7;wi++){
+      const semi=whitePattern[wi];
+      const mpc=pc(startMidi+oct*12+semi);
+      const inSet=highlightSet.has(mpc);
+      const iv=intervalMap?intervalMap[mpc]:null;
+      const isRoot=iv===0;
+      const color=iv!==null?INTERVAL_COLORS[iv]:null;
+      const x=(oct*7+wi)*whiteW;
+      let fill='#e8e4dc';
+      if(isRoot)fill=INTERVAL_COLORS[0];
+      else if(inSet&&color)fill=color+'88';
+      svg.appendChild(svgEl('rect',{x:x+0.5,y:0,width:whiteW-1,height:whiteH,fill,rx:3,ry:3,stroke:'#1a1a1e','stroke-width':0.5}));
+      if(inSet){
+        const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv!==null?iv:0];
+        svg.appendChild(svgEl('text',{x:x+whiteW/2,y:whiteH-10,'font-size':9,fill:'#000a','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+      }
+      const nm=NOTE_NAMES[mpc]+(oct+3);
+      svg.appendChild(svgEl('text',{x:x+whiteW/2,y:H-8,'font-size':7,fill:inSet?'#a0a090':'#2a2a28','font-family':'Space Mono, monospace','text-anchor':'middle'},nm));
+    }
+    for(let bi=0;bi<5;bi++){
+      const semi=blackSemi[bi];
+      const mpc=pc(startMidi+oct*12+semi);
+      const inSet=highlightSet.has(mpc);
+      const iv=intervalMap?intervalMap[mpc]:null;
+      const isRoot=iv===0;
+      const color=iv!==null?INTERVAL_COLORS[iv]:null;
+      const x=(oct*7+blackAfter[bi])*whiteW+whiteW-blackW/2;
+      let fill='#1a1a1e';
+      if(isRoot)fill=INTERVAL_COLORS[0];
+      else if(inSet&&color)fill=color;
+      svg.appendChild(svgEl('rect',{x,y:0,width:blackW,height:blackH,fill,rx:2,ry:2}));
+      if(inSet){
+        const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv!==null?iv:0];
+        svg.appendChild(svgEl('text',{x:x+blackW/2,y:blackH-8,'font-size':8,fill:isRoot?'#000':'#fff','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+      }
+    }
+  }
+}
+
+// ════════════════════════════════════════
+// MINI CHORD DIAGRAM (fret diagram per card)
+// ════════════════════════════════════════
+function makeChordDiagram(chordPcs, rootPc, tuning, container, size, startFretHint){
+  const openStrings=TUNINGS[tuning];
+  const lo = startFretHint ?? 0;
+  const hi = lo + 4;
+  const voicing=[];
+  for(let s=0;s<6;s++){
+    let found=-1;
+    for(let f=lo;f<=hi;f++){
+      if(chordPcs.includes(pc(openStrings[s]+f))){ found=f; break; }
+    }
+    // if nothing in window, try open string if lo===0
+    if(found<0 && lo===0 && chordPcs.includes(pc(openStrings[s]))) found=0;
+    voicing.push(found);
+  }
+  const playing=voicing.filter(f=>f>=0);
+  if(playing.length<2){ return; }
+
+  const minFret=Math.min(...playing);
+  const startFret=minFret;
+
+  // Diagram dimensions
+  const W=size||110,H=90;
+  const numFrts=5;
+  const leftM=18,rightM=6,topM=18,botM=12;
+  const strSpacing=(W-leftM-rightM)/5;
+  const fretSpacing=(H-topM-botM)/numFrts;
+
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('width','100%');
+  svg.setAttribute('height','auto');
+  svg.style.display='block';
+
+  // background
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'transparent'}));
+
+  // nut or fret number
+  if(startFret===0){
+    svg.appendChild(svgEl('rect',{x:leftM,y:topM-3,width:(5)*strSpacing,height:3,fill:'#c8b882'}));
+  } else {
+    const t=svgEl('text',{x:leftM-4,y:topM+fretSpacing/2+4,'font-size':7,fill:'#636268','font-family':'Space Mono, monospace','text-anchor':'end'},String(startFret+1)+'fr');
+    svg.appendChild(t);
+    svg.appendChild(svgEl('rect',{x:leftM,y:topM-1,width:(5)*strSpacing,height:1.5,fill:'#4a4030'}));
+  }
+
+  // Fret lines
+  for(let f=0;f<=numFrts;f++){
+    const y=topM+f*fretSpacing;
+    svg.appendChild(svgEl('line',{x1:leftM,y1:y,x2:leftM+5*strSpacing,y2:y,stroke:'#4a4030','stroke-width':0.8}));
+  }
+  // String lines
+  for(let s=0;s<6;s++){
+    const x=leftM+s*strSpacing;
+    svg.appendChild(svgEl('line',{x1:x,y1:topM,x2:x,y2:topM+numFrts*fretSpacing,stroke:'#7a6840','stroke-width':0.8}));
+    // mute/open indicators
+    const v=voicing[5-s]; // reverse: string 5 (high e) = left in standard tab view... actually let's keep low e left
+    const vv=voicing[s];
+    if(vv<0){
+      svg.appendChild(svgEl('text',{x,y:topM-5,'font-size':7,fill:'#636268','font-family':'Space Mono, monospace','text-anchor':'middle'},'✕'));
+    } else if(vv===0){
+      svg.appendChild(svgEl('circle',{cx:x,cy:topM-6,r:3,fill:'none',stroke:'#636268','stroke-width':0.8}));
+    }
+  }
+  // Dots
+  for(let s=0;s<6;s++){
+    const fret=voicing[s];
+    if(fret<=0)continue;
+    const relFret=fret-startFret;
+    if(relFret<1||relFret>numFrts)continue;
+    const x=leftM+s*strSpacing;
+    const y=topM+(relFret-0.5)*fretSpacing;
+    const notePc=pc(openStrings[s]+fret);
+    const isRoot=notePc===rootPc;
+    const chordIv=chordPcs.indexOf(notePc);
+    const color=chordIv>=0?INTERVAL_COLORS[CHORD_TYPES[currentChordType].shapes[selectedChord]?.intervals[chordIv]??0]:'#888';
+    svg.appendChild(svgEl('circle',{cx:x,cy:y,r:5.5,fill:isRoot?INTERVAL_COLORS[0]:color,opacity:0.9}));
+    const lbl=isRoot?'R':INTERVAL_LABELS[CHORD_TYPES[currentChordType].shapes[selectedChord]?.intervals[chordIv]??0];
+    svg.appendChild(svgEl('text',{x,y:y+3.5,'font-size':6,fill:isRoot?'#000':'#fff','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+  }
+
+  container.appendChild(svg);
+}
+
+// ════════════════════════════════════════
+// BUILD CHORD CARDS
+// ════════════════════════════════════════
+function buildChordCards(){
+  const typeShapes=CHORD_TYPES[currentChordType].shapes;
+  const cards=document.getElementById('chord-cards');
+  cards.innerHTML='';
+
+  // For each chord shape, build one card per degree of the scale (or just show the chord on current root)
+  // We'll show all chords of this type rooted on each scale degree
+  const scaleIntervals=SCALES[currentScale].intervals;
+  const scaleDegrees=scaleIntervals.map(iv=>(currentRoot+iv)%12);
+
+  Object.entries(typeShapes).forEach(([key,shape])=>{
+    // Show chord rooted on each scale degree
+    scaleDegrees.forEach((degPc,di)=>{
+      const chordPcs=shape.intervals.map(iv=>(degPc+iv)%12);
+      // check all chord tones are in scale (diatonic check, relaxed for extended)
+      const scaleSet=getScaleSet(currentRoot,currentScale);
+      const diatonic=shape.intervals.length<=3
+        ? chordPcs.every(p=>scaleSet.has(p))
+        : chordPcs.slice(0,3).every(p=>scaleSet.has(p)); // triads diatonic, extended relaxed
+
+      const degName=NOTE_NAMES[degPc];
+      const chordLabel=degName+shape.short;
+      const isSelected=selectedChord===key+'_'+di;
+      const dimColor=diatonic?'var(--text)':'var(--muted)';
+
+      const card=document.createElement('div');
+      card.className='chord-card'+(isSelected?' active':'')+(diatonic?'':' non-diatonic');
+      card.style.opacity=diatonic?'1':'0.45';
+
+      card.innerHTML=`
+        <div class="chord-card-name" style="color:${diatonic?'':'var(--muted)'}"><span>${degName}</span>${shape.short||''}</div>
+        <div class="chord-card-type">${shape.name}</div>
+        <div class="chord-diagram-wrap" id="diag_${key}_${di}"></div>
+        <div class="chord-card-notes">${chordPcs.map(p=>NOTE_NAMES[p]).join(' ')}</div>
+        ${!diatonic?'<div class="chord-card-quality" style="color:#e05a6a;font-size:9px">non-diatonic</div>':''}
+      `;
+      card.addEventListener('click',()=>selectChord(key,di,degPc,chordPcs,shape,chordLabel));
+      cards.appendChild(card);
+
+      // Mini diagram: guitar fret diagram or mini piano depending on view
+      const diag=document.getElementById(`diag_${key}_${di}`);
+      if(diag){
+        if(currentView==='piano'){
+          // mini piano: single octave inline SVG
+          const chordSet=new Set(chordPcs);
+          const ivMapMini={};chordPcs.forEach((p,i)=>{ivMapMini[p]=shape.intervals[i]??0;});
+          const miniSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+          miniSvg.setAttribute('viewBox','0 0 110 52');
+          miniSvg.setAttribute('width','100%');miniSvg.setAttribute('height','auto');
+          miniSvg.style.display='block';miniSvg.style.marginTop='4px';
+          drawMiniPiano(miniSvg,chordSet,ivMapMini);
+          diag.appendChild(miniSvg);
+        } else {
+          makeChordDiagram(chordPcs,degPc,currentTuning,diag,110);
+        }
+      }
+    });
+  });
+
+  document.getElementById('chord-section-title').textContent=
+    `${CHORD_TYPES[currentChordType].label} in ${NOTE_NAMES[currentRoot]} ${SCALES[currentScale].name}`;
+}
+
+function selectChord(key,di,rootPc,chordPcs,shape,label){
+  selectedChord=key+'_'+di;
+
+  // interval map for chord
+  const ivMap={};
+  chordPcs.forEach((p,i)=>{ivMap[p]=shape.intervals[i]??0;});
+
+  const detail=document.getElementById('chord-detail');
+  detail.className='chord-detail visible';
+
+  document.getElementById('chord-detail-title').innerHTML=
+    `<span>${NOTE_NAMES[rootPc]}</span>${shape.short} <span style="font-size:13px;color:var(--muted);font-weight:400">${shape.name}</span>`;
+
+  // note pills
+  const pillsHTML=chordPcs.map((p,i)=>{
+    const iv=shape.intervals[i];
+    return `<span class="chord-note-pill${iv===0?' root':''}" style="${iv!==0?`border-color:${INTERVAL_COLORS[iv]};color:${INTERVAL_COLORS[iv]}`:''}">
+      ${NOTE_NAMES[p]} <span style="font-size:9px;opacity:.7">${INTERVAL_LABELS[iv]}</span>
+    </span>`;
+  }).join('');
+  document.getElementById('chord-detail-notes').innerHTML=`<div class="chord-notes-row">${pillsHTML}</div>`;
+  document.getElementById('chord-detail-desc').textContent=shape.desc;
+
+  const chordSet=new Set(chordPcs);
+
+  // Detail diagram: guitar fingering OR hide in piano mode
+  const diagWrap=document.getElementById('chord-detail-diagram');
+  diagWrap.innerHTML='';
+  if(currentView==='guitar'){
+    makeChordDiagram(chordPcs,rootPc,currentTuning,diagWrap,140);
+    diagWrap.style.display='';
+  } else {
+    diagWrap.style.display='none';
+  }
+
+  // Piano chord — always draw, shown in both views
+  const pianoWrap=document.getElementById('chord-piano-wrap');
+  pianoWrap.style.display='block';
+  drawPiano('piano-svg-chord',chordSet,ivMap,2,600,140);
+
+  // Full fretboard: show in guitar view, hide in piano view
+  const fbWrap=document.getElementById('chord-fretboard-wrap');
+  if(currentView==='guitar'){
+    fbWrap.style.display='block';
+    const openStrings=TUNINGS[currentTuning];
+    drawFretboard('chord-fretboard-svg',chordSet,ivMap,openStrings,numFrets);
+  } else {
+    fbWrap.style.display='none';
+  }
+
+  // Full piano: show in piano view below detail
+  const fullPianoWrap=document.getElementById('chord-full-piano-wrap');
+  if(currentView==='piano'){
+    fullPianoWrap.style.display='block';
+    drawPiano('chord-full-piano-svg',chordSet,ivMap,numOctaves,840,180);
+  } else {
+    fullPianoWrap.style.display='none';
+  }
+
+  // re-render cards to show active
+  buildChordCards();
+  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ════════════════════════════════════════
+// CHORD TYPE TABS
+// ════════════════════════════════════════
+function buildChordTypeTabs(){
+  const wrap=document.getElementById('chord-type-tabs');
+  wrap.innerHTML='';
+  Object.entries(CHORD_TYPES).forEach(([key,ct])=>{
+    const btn=document.createElement('button');
+    btn.className='chord-type-btn'+(key===currentChordType?' active':'');
+    btn.textContent=ct.label;
+    btn.addEventListener('click',()=>{
+      currentChordType=key;
+      selectedChord=null;
+      document.getElementById('chord-detail').className='chord-detail';
+      document.getElementById('chord-fretboard-wrap').style.display='none';
+      document.getElementById('chord-full-piano-wrap').style.display='none';
+      buildChordTypeTabs();
+      buildChordCards();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+// ════════════════════════════════════════
+// SCALE LEGEND + INFO
+// ════════════════════════════════════════
+function buildLegend(){
+  const legend=document.getElementById('legend');
+  legend.innerHTML='';
+  SCALES[currentScale].intervals.forEach((iv,i,arr)=>{
+    const color=INTERVAL_COLORS[iv];
+    const item=document.createElement('div');item.className='legend-item';
+    item.innerHTML=`<div class="legend-dot" style="background:${iv===0?color:color+'40'};border:2px solid ${color};${iv===0?'box-shadow:0 0 6px '+color+'80':''}"></div><span style="color:${iv===0?color:'#8a8890'}">${INTERVAL_LABELS[iv]}</span>`;
+    legend.appendChild(item);
+    if(i<arr.length-1){const s=document.createElement('div');s.className='legend-sep';legend.appendChild(s);}
+  });
+}
+
+function buildInfoCard(){
+  const card=document.getElementById('scale-info');
+  const scale=SCALES[currentScale];
+  const rn=NOTE_NAMES[currentRoot];
+  const notesHTML=scale.intervals.map(iv=>{
+    const p=(currentRoot+iv)%12;
+    return iv===0?`<span class="note-root">${NOTE_NAMES[p]}</span>`:NOTE_NAMES[p];
+  }).join(' – ');
+  const chipsHTML=scale.intervalNames.map((n,i)=>{
+    const iv=scale.intervals[i];
+    let cls=iv===0?'root':[1,6,8,11].includes(iv)?'tension':[3,4,10].includes(iv)?'color-note':'';
+    return `<span class="interval-chip ${cls}">${n}</span>`;
+  }).join('');
+  const genresHTML=(scale.genres||[]).map(g=>`<span class="genre-tag">${g}</span>`).join('');
+  const tuningLine=currentView==='guitar'?`<div class="ibt" style="margin-top:12px">Tuning</div><div style="font-family:'Space Mono',monospace;font-size:10px;color:#a0907a">${TUNING_NOTES[currentTuning]}</div>`:'';
+  card.innerHTML=`
+    <div>
+      <div class="ibt">Scale</div>
+      <div class="scale-name-display"><span>${rn}</span> ${scale.name}</div>
+      <div class="scale-character">${scale.character}</div>
+      <div class="scale-desc">${scale.description}</div>
+    </div>
+    <div>
+      <div class="ibt">Notes in ${rn}</div>
+      <div class="notes-display">${notesHTML}</div>
+      <div class="ibt" style="margin-top:12px">Intervals</div>
+      <div class="intervals-display">${chipsHTML}</div>
+      <div class="ibt" style="margin-top:12px">Formula</div>
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:#636268;letter-spacing:.05em">${scale.formula}</div>
+      <div class="ibt" style="margin-top:12px">Common In</div>
+      <div class="genres-display">${genresHTML}</div>
+      ${tuningLine}
+    </div>`;
+}
+
+function buildScaleGrid(){
+  const grid=document.getElementById('scale-grid');
+  grid.innerHTML='';
+  Object.entries(SCALES).forEach(([key,s])=>{
+    const pill=document.createElement('div');
+    pill.className='scale-pill'+(key===currentScale?' active':'');
+    pill.innerHTML=`<div class="scale-pill-name">${s.name}</div><div class="scale-pill-char">${s.character}</div><div class="scale-pill-formula">${s.formula||''}</div>`;
+    pill.addEventListener('click',()=>{currentScale=key;document.getElementById('scale-select').value=key;render();});
+    grid.appendChild(pill);
+  });
+}
+
+// ════════════════════════════════════════
+// PROGRESSION VIZ: scale dim + chord bright
+// ════════════════════════════════════════
+function drawFretboardWithChord(svgId, scaleSet, scaleIvMap, chordSet, chordIvMap, chordRootPc, openStrings, N){
+  const svg=document.getElementById(svgId);
+  svg.innerHTML='';
+  const SW=960,SH=220,NX=52,FAW=SW-NX-16,ST=28,SB=SH-28;
+  const fx=f=>f===0?NX:NX+(f/N)*FAW;
+  const sy=s=>ST+(5-s)*((SB-ST)/5);
+  const fXs=Array.from({length:N+1},(_,f)=>fx(f));
+
+  // Wood background
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:SW,height:SH,fill:'#1a120a'}));
+  for(let i=0;i<8;i++) svg.appendChild(svgEl('line',{x1:0,y1:12+i*28,x2:SW,y2:15+i*28,stroke:'#1e1408','stroke-width':4}));
+
+  // Inlays
+  for(const f of [3,5,7,9,12,15,17].filter(f=>f<=N)){
+    const x=(fXs[f-1]+fXs[f])/2;
+    if(f===12){svg.appendChild(svgEl('circle',{cx:x,cy:sy(1.5),r:5,fill:'#1e2830'}));svg.appendChild(svgEl('circle',{cx:x,cy:sy(3.5),r:5,fill:'#1e2830'}));}
+    else svg.appendChild(svgEl('circle',{cx:x,cy:SH/2,r:5,fill:'#1e2830'}));
+  }
+  // Frets
+  for(let f=1;f<=N;f++){
+    svg.appendChild(svgEl('line',{x1:fXs[f],y1:ST-8,x2:fXs[f],y2:SB+8,stroke:'#4a4030','stroke-width':f===12?3:1.5}));
+  }
+  // Nut
+  svg.appendChild(svgEl('rect',{x:NX-5,y:ST-10,width:6,height:SB-ST+20,fill:'#c8b882'}));
+  // Strings
+  const th=[2.4,1.9,1.5,1.2,0.9,0.7];
+  for(let s=0;s<6;s++){
+    svg.appendChild(svgEl('line',{x1:NX,y1:sy(s),x2:SW-16,y2:sy(s),stroke:'#7a6840','stroke-width':th[5-s]}));
+  }
+  // Fret numbers
+  for(let f=1;f<=N;f++){
+    const x=(fXs[f-1]+fXs[f])/2;
+    svg.appendChild(svgEl('text',{x,y:SH-6,'font-size':8,fill:'#3a3830','font-family':'Space Mono, monospace','text-anchor':'middle'},String(f)));
+  }
+  // Open string labels
+  for(let s=0;s<6;s++){
+    const notePc=pc(openStrings[s]);
+    const isChord=chordSet.has(notePc);
+    const isRoot=notePc===chordRootPc;
+    svg.appendChild(svgEl('text',{x:NX-10,y:sy(s)+4,'font-size':10,
+      fill:isRoot?'#f0a500':isChord?'#e4e2dd':scaleSet.has(notePc)?'#3a3830':'#222',
+      'font-family':'Space Grotesk, sans-serif','font-weight':600,'text-anchor':'middle'},NOTE_NAMES[notePc]));
+  }
+
+  // Pass 1 — scale notes as tiny dim markers (only non-chord tones)
+  for(let s=0;s<6;s++){
+    const y=sy(s);
+    for(let f=0;f<=N;f++){
+      const notePc=pc(openStrings[s]+f);
+      if(!scaleSet.has(notePc)) continue;
+      if(chordSet.has(notePc)) continue; // chord tones drawn in pass 2
+      const iv=scaleIvMap[notePc];
+      const color=INTERVAL_COLORS[iv]??'#888';
+      const x=f===0?NX:(fXs[f-1]+fXs[f])/2;
+      // tiny hollow dot
+      svg.appendChild(svgEl('circle',{cx:x,cy:y,r:5,fill:'none',stroke:color,'stroke-width':1,opacity:0.3}));
+    }
+  }
+
+  // Pass 2 — chord tones as full bright dots
+  for(let s=0;s<6;s++){
+    const y=sy(s);
+    for(let f=0;f<=N;f++){
+      const notePc=pc(openStrings[s]+f);
+      if(!chordSet.has(notePc)) continue;
+      const iv=chordIvMap[notePc]??0;
+      const color=INTERVAL_COLORS[iv];
+      const isRoot=notePc===chordRootPc;
+      const x=f===0?NX:(fXs[f-1]+fXs[f])/2;
+      const r=isRoot?13:11;
+      svg.appendChild(svgEl('circle',{cx:x+1,cy:y+1,r,fill:'rgba(0,0,0,0.5)'}));
+      if(isRoot) svg.appendChild(svgEl('circle',{cx:x,cy:y,r:r+2,fill:'none',stroke:color,'stroke-width':2}));
+      svg.appendChild(svgEl('circle',{cx:x,cy:y,r,fill:isRoot?color:color+'55',stroke:color,'stroke-width':isRoot?0:2}));
+      const lbl=isRoot?NOTE_NAMES[notePc]:INTERVAL_LABELS[iv];
+      svg.appendChild(svgEl('text',{x,y:y+4,'font-size':isRoot?9:8,fill:isRoot?'#000':color,
+        'font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+    }
+  }
+}
+
+function drawPianoWithChord(svgId, scaleSet, scaleIvMap, chordSet, chordIvMap, octaves, W, H){
+  const svg=document.getElementById(svgId);
+  svg.innerHTML='';
+  const startMidi=48;
+  const whiteW=W/(octaves*7),whiteH=H-28;
+  const blackW=whiteW*0.6,blackH=whiteH*0.62;
+  const whitePattern=[0,2,4,5,7,9,11];
+  const blackAfter=[0,1,3,4,5];
+  const blackSemi=[1,3,6,8,10];
+
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'#0d0d0e'}));
+
+  // White keys
+  for(let oct=0;oct<octaves;oct++){
+    for(let wi=0;wi<7;wi++){
+      const mpc=pc(startMidi+oct*12+whitePattern[wi]);
+      const inChord=chordSet.has(mpc);
+      const inScale=scaleSet.has(mpc)&&!inChord;
+      const iv=chordIvMap[mpc];
+      const isRoot=iv===0&&inChord;
+      const color=iv!==undefined?INTERVAL_COLORS[iv]:null;
+      const x=(oct*7+wi)*whiteW;
+      let fill='#e8e4dc';
+      if(isRoot) fill=INTERVAL_COLORS[0];
+      else if(inChord&&color) fill=color+'cc';
+      else if(inScale) fill='#2e2e38';
+      svg.appendChild(svgEl('rect',{x:x+0.5,y:0,width:whiteW-1,height:whiteH,fill,rx:3,ry:3,stroke:'#1a1a1e','stroke-width':0.5}));
+      if(inChord){
+        const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv??0];
+        svg.appendChild(svgEl('text',{x:x+whiteW/2,y:whiteH-10,'font-size':9,fill:'#000a','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+      }
+      svg.appendChild(svgEl('text',{x:x+whiteW/2,y:H-8,'font-size':7,fill:inChord?'#a0a090':'#2a2a28','font-family':'Space Mono, monospace','text-anchor':'middle'},NOTE_NAMES[mpc]+(oct+3)));
+    }
+    // Black keys
+    for(let bi=0;bi<5;bi++){
+      const mpc=pc(startMidi+oct*12+blackSemi[bi]);
+      const inChord=chordSet.has(mpc);
+      const inScale=scaleSet.has(mpc)&&!inChord;
+      const iv=chordIvMap[mpc];
+      const isRoot=iv===0&&inChord;
+      const color=iv!==undefined?INTERVAL_COLORS[iv]:null;
+      const x=(oct*7+blackAfter[bi])*whiteW+whiteW-blackW/2;
+      let fill='#1a1a1e';
+      if(isRoot) fill=INTERVAL_COLORS[0];
+      else if(inChord&&color) fill=color;
+      else if(inScale) fill='#252530';
+      svg.appendChild(svgEl('rect',{x,y:0,width:blackW,height:blackH,fill,rx:2,ry:2}));
+      if(inChord){
+        const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv??0];
+        svg.appendChild(svgEl('text',{x:x+blackW/2,y:blackH-8,'font-size':8,fill:isRoot?'#000':'#fff','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+      }
+    }
+  }
+}
+
+// ════════════════════════════════════════
+// PROGRESSIONS DATA
+// ════════════════════════════════════════
+
+// Harmonic function by scale degree index (for 7-note scales)
+// T=Tonic, SD=Subdominant, D=Dominant
+const DEGREE_FUNCTIONS = {
+  major:          ['T','SD','T','SD','D','T','D'],
+  natural_minor:  ['T','D','T','SD','D','SD','D'],
+  harmonic_minor: ['T','D','T','SD','D','SD','D'],
+  melodic_minor:  ['T','D','T','SD','D','SD','D'],
+  dorian:         ['T','SD','T','SD','D','T','D'],
+  phrygian:       ['T','SD','T','SD','D','SD','D'],
+  lydian:         ['T','SD','D','T','D','T','D'],
+  mixolydian:     ['T','SD','T','SD','D','T','SD'],
+  locrian:        ['D','SD','T','SD','D','SD','T'],
+  // pentatonic/other — fewer degrees, use generic
+};
+
+const ROMAN = ['I','II','III','IV','V','VI','VII'];
+const ROMAN_LOWER = ['i','ii','iii','iv','v','vi','vii'];
+
+// Common progressions as degree indices (0-based into the scale's degrees)
+const PROGRESSIONS = [
+  {
+    category: 'Classic Major',
+    items: [
+      { name:'I – V – vi – IV', degrees:[0,4,5,3], desc:'The most common progression in pop history. Works in every major key. Feels uplifting and familiar.', genre:'Pop, Rock, Country' },
+      { name:'I – IV – V', degrees:[0,3,4], desc:'The three-chord trick. Backbone of blues, rock and roll, and folk. Every guitarist learns this first.', genre:'Blues, Rock, Folk' },
+      { name:'I – IV – V – I', degrees:[0,3,4,0], desc:'A complete cadential phrase — tension (V) resolving back to home (I). The basis of classical harmony.', genre:'Classical, Folk, Gospel' },
+      { name:'I – vi – IV – V', degrees:[0,5,3,4], desc:'The "50s progression." Timeless and nostalgic, used from doo-wop to modern pop.', genre:'50s Pop, Doo-Wop, Pop' },
+      { name:'I – V – vi – iii – IV', degrees:[0,4,5,2,3], desc:'Extended pop loop. Adds the iii chord for extra colour before landing on IV.', genre:'Pop, Ballads' },
+      { name:'ii – V – I', degrees:[1,4,0], desc:'The most important jazz progression. The ii chord sets up the dominant V, which resolves to I. Foundational.', genre:'Jazz, Bossa Nova' },
+      { name:'I – II – IV – I', degrees:[0,1,3,0], desc:'Adds a chromatic II chord for a lifted, anthemic feeling before the IV.', genre:'Rock, Anthems' },
+    ]
+  },
+  {
+    category: 'Classic Minor',
+    items: [
+      { name:'i – VII – VI – VII', degrees:[0,6,5,6], desc:'Driving and anthemic. The VII–VI–VII cycle creates constant forward momentum. Classic rock and metal.', genre:'Rock, Metal, Grunge' },
+      { name:'i – iv – V', degrees:[0,3,4], desc:'Minor key three-chord — emotional, direct. The V chord creates strong pull back to the i.', genre:'Blues, Flamenco, Folk' },
+      { name:'i – VI – III – VII', degrees:[0,5,2,6], desc:'Emotional and cinematic. The relative major chords (VI, III) bring light into the minor key.', genre:'Pop, Film, Ballads' },
+      { name:'i – iv – VII – III – VI – II° – V – i', degrees:[0,3,6,2,5,1,4,0], desc:'The Andalusian cadence — descending bassline through the natural minor. Flamenco and Spanish classical DNA.', genre:'Flamenco, Classical, Metal' },
+      { name:'i – VI – VII', degrees:[0,5,6], desc:'Simple and powerful minor loop. Very common in modern rock, metal and post-punk.', genre:'Rock, Metal, Indie' },
+      { name:'ii° – V – i', degrees:[1,4,0], desc:'Jazz minor ii–V–i. The diminished ii° adds extra tension before the dominant V resolves to minor i.', genre:'Jazz, Latin, Bossa Nova' },
+    ]
+  },
+  {
+    category: 'Modal & Exotic',
+    items: [
+      { name:'I – VII – I (Dorian loop)', degrees:[0,6,0], desc:'Hovering between the I and ♭VII — the signature Dorian move. No resolution, just groove.', genre:'Jazz, Funk, Soul' },
+      { name:'i – II (Phrygian)', degrees:[0,1], desc:'The ♭II chord (one semitone above root) is the Phrygian fingerprint. Dark, Spanish, inevitable.', genre:'Flamenco, Metal, Spanish' },
+      { name:'I – II – I (Lydian)', degrees:[0,1,0], desc:'The ♯IV on the II chord gives Lydian its floating, dreamlike quality. Nothing else sounds like this.', genre:'Film, Prog, New Age' },
+      { name:'I – VII – IV – I (Mixolydian)', degrees:[0,6,3,0], desc:'The ♭VII chord is what makes Mixolydian rock. Used everywhere from "Hey Joe" to Celtic folk.', genre:'Rock, Celtic, Blues' },
+      { name:'i – ♭II – i (Double Harmonic)', degrees:[0,1,0], desc:'The dramatic ♭II resolution is the Arabian/Byzantine hallmark. Feels ancient and inevitable.', genre:'Middle Eastern, Metal, World' },
+    ]
+  },
+  {
+    category: 'Jazz & Advanced',
+    items: [
+      { name:'I – VI – ii – V', degrees:[0,5,1,4], desc:'The "rhythm changes" turnaround. Constantly cycling through the key. Jazz standards bread and butter.', genre:'Jazz, Swing, Bebop' },
+      { name:'iii – VI – ii – V – I', degrees:[2,5,1,4,0], desc:'Extended turnaround. The iii–VI substitution before the ii–V–I creates a longer, richer cycle.', genre:'Jazz, Bossa Nova' },
+      { name:'I – IV – iii – VI', degrees:[0,3,2,5], desc:'Descending inner voices. The iii–VI move connects the IV back around. Very smooth harmonic motion.', genre:'Jazz, Soul, R&B' },
+      { name:'i – V – i (Harmonic Minor cadence)', degrees:[0,4,0], desc:'The raised 7th in harmonic minor creates a major V chord in a minor key — the strongest possible resolution.', genre:'Classical, Jazz, Metal' },
+    ]
+  },
+  {
+    category: 'Blues & Rock',
+    items: [
+      { name:'I – IV – I – V – IV – I', degrees:[0,3,0,4,3,0], desc:'12-bar blues skeleton. The most important chord sequence in popular music. Every musician needs this.', genre:'Blues, Rock, R&B' },
+      { name:'I – ♭VII – IV – I', degrees:[0,6,3,0], desc:'The "rock" loop — ♭VII gives it swagger. From Hendrix to Zeppelin to grunge.', genre:'Rock, Hard Rock, Grunge' },
+      { name:'I – IV – I – IV – V – IV – I', degrees:[0,3,0,3,4,3,0], desc:'Eight-bar blues. Slightly more compressed than 12-bar, common in rockabilly and early rock.', genre:'Blues, Rockabilly, Rock' },
+    ]
+  },
+];
+
+// ════════════════════════════════════════
+// PROGRESSION STATE
+// ════════════════════════════════════════
+let selectedDegreeIdx = null;   // which degree card is highlighted
+let activeProgIdx = null;       // which progression row is playing
+let activeStepIdx = null;       // which step within that progression
+let progStepTimer = null;       // auto-step interval
+
+// ════════════════════════════════════════
+// BUILD DIATONIC KEY STRIP
+// ════════════════════════════════════════
+function getDiatonicChords(rootPc, scaleKey){
+  const scale = SCALES[scaleKey];
+  const ivs = scale.intervals;
+  const scaleSet = new Set(ivs.map(i=>(rootPc+i)%12));
+  const fns = DEGREE_FUNCTIONS[scaleKey] || ivs.map((_,i)=>['T','SD','D'][i%3]);
+
+  return ivs.map((degIv, di)=>{
+    const degPc = (rootPc + degIv) % 12;
+    // build triad: root, 3rd, 5th from this degree
+    const third = ivs[(di+2) % ivs.length];
+    const fifth  = ivs[(di+4) % ivs.length];
+    const thirdIv = ((third - degIv) + 12) % 12;
+    const fifthIv = ((fifth  - degIv) + 12) % 12;
+
+    // quality
+    let quality = '', short = '';
+    if      (thirdIv===4 && fifthIv===7)  { quality='Major';      short='';  }
+    else if (thirdIv===3 && fifthIv===7)  { quality='Minor';      short='m'; }
+    else if (thirdIv===3 && fifthIv===6)  { quality='Diminished'; short='°'; }
+    else if (thirdIv===4 && fifthIv===8)  { quality='Augmented';  short='+'; }
+    else { quality='Sus';  short='sus'; }
+
+    const chordPcs = [degPc, (degPc+thirdIv)%12, (degPc+fifthIv)%12];
+    const isMinor = thirdIv === 3;
+    const numeral = ivs.length >= 7
+      ? (isMinor || quality==='Diminished' ? ROMAN_LOWER[di] : ROMAN[di]) + (quality==='Diminished'?'°':'')
+      : ROMAN[di];
+
+    const fn = fns[di] || 'T';
+    return { degPc, degIv, quality, short, chordPcs, numeral, fn,
+             name: NOTE_NAMES[degPc] + short, di };
+  });
+}
+
+function buildProgKeyStrip(){
+  const strip = document.getElementById('prog-key-strip');
+  strip.innerHTML = '';
+  const rn = NOTE_NAMES[currentRoot];
+  document.getElementById('prog-key-label').textContent =
+    `${rn} ${SCALES[currentScale].name} — diatonic chords`;
+
+  const chords = getDiatonicChords(currentRoot, currentScale);
+  chords.forEach((ch, i)=>{
+    const card = document.createElement('div');
+    const fnClass = {T:'tonic-fn',SD:'subdominant-fn',D:'dominant-fn'}[ch.fn]||'';
+    card.className = `prog-degree ${fnClass}` + (selectedDegreeIdx===i?' active':'');
+    card.innerHTML = `
+      <div class="prog-numeral">${ch.numeral}</div>
+      <div class="prog-chord-name">${ch.name}</div>
+      <div class="prog-quality">${ch.quality}</div>
+      <div class="prog-function ${ch.fn}">${ch.fn==='T'?'Tonic':ch.fn==='SD'?'Subdominant':'Dominant'}</div>
+      <div class="prog-notes-mini">${ch.chordPcs.map(p=>NOTE_NAMES[p]).join(' ')}</div>
+    `;
+    card.addEventListener('click', ()=>selectProgDegree(i, ch));
+    strip.appendChild(card);
+  });
+}
+
+function selectProgDegree(i, ch){
+  selectedDegreeIdx = i;
+  // rebuild strip to update active state
+  buildProgKeyStrip();
+  showProgViz(ch.chordPcs, ch.degPc, ch.name + ' (' + ch.numeral + ')');
+}
+
+function showProgViz(chordPcs, rootPc, label){
+  const wrap = document.getElementById('prog-viz-wrap');
+  wrap.className = 'prog-viz-wrap visible';
+
+  // ── Header label ──
+  document.getElementById('prog-viz-label').innerHTML =
+    `<span style="color:var(--gold);font-weight:700;font-size:16px">${NOTE_NAMES[rootPc]}</span>` +
+    `<span style="color:var(--text);font-size:14px;font-weight:500;margin-left:4px">${label.replace(/^[A-Z][♯♭]?/,'').trim()}</span>`;
+
+  // ── Note pills ──
+  const chordIntervals = [0,4,7,10,2,5,9,11,3,6,8,1];
+  const ivMap = {};
+  chordPcs.forEach((p,i)=>{ ivMap[p] = chordIntervals[i] ?? 0; });
+  const notePills = chordPcs.map((p,i)=>{
+    const iv = chordIntervals[i]??0;
+    const col = INTERVAL_COLORS[iv];
+    return `<span style="font-family:'Space Mono',monospace;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid ${i===0?'var(--gold)':col};color:${i===0?'var(--gold)':col};background:${i===0?'rgba(240,165,0,.1)':col+'18'}">${NOTE_NAMES[p]} <span style="opacity:.6;font-size:9px">${INTERVAL_LABELS[iv]}</span></span>`;
+  }).join('');
+  document.getElementById('prog-viz-notes').innerHTML =
+    `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${notePills}</div>`;
+
+  // ── Chord fret diagrams row (guitar only) ──
+  const diagRow = document.getElementById('prog-chord-diagrams');
+  diagRow.innerHTML = '';
+  if(currentView === 'guitar'){
+    diagRow.style.display = 'flex';
+    const openStrings = TUNINGS[currentTuning];
+    const chordSet = new Set(chordPcs);
+    const windows = [[0,4],[3,7],[5,9],[7,11]];
+    let shown = 0;
+    windows.forEach(([lo,hi])=>{
+      if(shown >= 3) return;
+      const voicing = [];
+      for(let s=0;s<6;s++){
+        let found=-1;
+        for(let f=lo;f<=hi;f++){
+          if(chordSet.has(pc(openStrings[s]+f))){ found=f; break; }
+        }
+        voicing.push(found);
+      }
+      if(voicing.filter(f=>f>=0).length < 3) return;
+      shown++;
+      const box = document.createElement('div');
+      box.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 10px 6px;';
+      const posLabel = document.createElement('div');
+      posLabel.style.cssText='font-family:"Space Mono",monospace;font-size:8px;color:var(--muted);text-align:center;margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase;';
+      posLabel.textContent = lo===0?'Open Position':`Position ${lo}`;
+      box.appendChild(posLabel);
+      makeChordDiagram(chordPcs, rootPc, currentTuning, box, 110, lo);
+      diagRow.appendChild(box);
+    });
+    if(shown===0){
+      diagRow.innerHTML='<div style="font-size:11px;color:var(--muted);font-style:italic;padding:8px 0">No playable voicing found in this tuning</div>';
+    }
+  } else {
+    diagRow.style.display='none';
+  }
+
+  // ── Full neck / piano ──
+  const chordSet2 = new Set(chordPcs);
+  const scaleSet  = getScaleSet(currentRoot, currentScale);
+  const scaleIvMap = {};
+  SCALES[currentScale].intervals.forEach(iv=>{ scaleIvMap[(currentRoot+iv)%12]=iv; });
+
+  if(currentView==='guitar'){
+    document.getElementById('prog-guitar-viz').style.display='';
+    document.getElementById('prog-piano-viz').style.display='none';
+    drawFretboardWithChord('prog-fretboard-svg', scaleSet, scaleIvMap, chordSet2, ivMap, rootPc, TUNINGS[currentTuning], numFrets);
+  } else {
+    document.getElementById('prog-guitar-viz').style.display='none';
+    document.getElementById('prog-piano-viz').style.display='';
+    drawPianoWithChord('prog-piano-svg', scaleSet, scaleIvMap, chordSet2, ivMap, numOctaves, 840, 180);
+  }
+}
+
+// ════════════════════════════════════════
+// BUILD PROGRESSION LIST
+// ════════════════════════════════════════
+function buildProgList(){
+  const wrap = document.getElementById('prog-list-wrap');
+  wrap.innerHTML = '';
+  const chords = getDiatonicChords(currentRoot, currentScale);
+
+  PROGRESSIONS.forEach((cat, ci)=>{
+    const catDiv = document.createElement('div');
+    catDiv.innerHTML = `<div class="prog-category">${cat.category}</div>`;
+    const itemsDiv = document.createElement('div');
+    itemsDiv.className = 'prog-items';
+
+    cat.items.forEach((prog, pi)=>{
+      const globalIdx = ci * 100 + pi;
+      const isPlaying = activeProgIdx === globalIdx;
+      const progChords = prog.degrees.map(d => chords[d % chords.length]);
+
+      const item = document.createElement('div');
+      item.className = 'prog-item' + (isPlaying ? ' playing' : '');
+
+      const numeralChips = progChords.map((ch, si)=>{
+        const isActive = isPlaying && activeStepIdx === si;
+        const wasPast  = isPlaying && si < activeStepIdx;
+        return `<div class="prog-numeral-chip${isActive?' active-step':wasPast?' was-active':''}" data-gi="${globalIdx}" data-si="${si}">${ch.numeral}</div>`;
+      }).join('<span style="color:var(--muted2);font-size:11px;align-self:center">→</span>');
+
+      item.innerHTML = `
+        <div class="prog-item-top">
+          <div class="prog-item-name">${prog.name}</div>
+          <div class="prog-item-numerals">${numeralChips}</div>
+        </div>
+        <div class="prog-item-desc">${prog.desc}</div>
+        <div class="prog-item-genre" style="font-style:italic">${prog.genre}</div>
+        <div class="prog-playback">
+          <button class="play-btn${isPlaying?' on':''}" data-gi="${globalIdx}">
+            ${isPlaying ? '⏹ STOP' : '▶ STEP'}
+          </button>
+          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-left:6px">
+            ${progChords.map(ch=>`${ch.name}`).join(' → ')}
+          </span>
+        </div>
+      `;
+
+      item.querySelectorAll('.prog-numeral-chip').forEach(chip=>{
+        chip.addEventListener('click', e=>{
+          e.stopPropagation();
+          stopProgPlayback();
+          const si = parseInt(chip.dataset.si);
+          activeProgIdx = globalIdx;
+          activeStepIdx = si;
+          const ch = progChords[si];
+          showProgViz(ch.chordPcs, ch.degPc, `${ch.name} (${ch.numeral}) — ${si+1}/${progChords.length}`);
+          selectedDegreeIdx = ch.di;
+          buildProgKeyStrip();
+          updateProgChips();
+        });
+      });
+
+      item.querySelector('.play-btn').addEventListener('click', e=>{
+        e.stopPropagation();
+        if(isPlaying){ stopProgPlayback(); buildProgList(); }
+        else { startProgPlayback(globalIdx, progChords); }
+      });
+
+      itemsDiv.appendChild(item);
+    });
+    catDiv.appendChild(itemsDiv);
+    wrap.appendChild(catDiv);
+  });
+}
+
+function startProgPlayback(globalIdx, progChords){
+  stopProgPlayback();
+  activeProgIdx = globalIdx;
+  activeStepIdx = 0;
+  window._activeProgChords = progChords;
+  showProgStep(progChords);
+  updateProgChips();
+  // mark the row as playing
+  document.querySelectorAll('.prog-item').forEach((el,i)=>{
+    const btn = el.querySelector('.play-btn');
+    if(btn && parseInt(btn.dataset.gi)===globalIdx){
+      el.classList.add('playing');
+      btn.classList.add('on');
+      btn.textContent='⏹ STOP';
+    }
+  });
+  progStepTimer = setInterval(()=>{
+    activeStepIdx = (activeStepIdx + 1) % progChords.length;
+    showProgStep(progChords);
+    updateProgChips();
+  }, 1600);
+}
+
+function stopProgPlayback(){
+  clearInterval(progStepTimer);
+  progStepTimer = null;
+  activeProgIdx = null;
+  activeStepIdx = null;
+  window._activeProgChords = null;
+}
+
+function updateProgChips(){
+  document.querySelectorAll('.prog-numeral-chip').forEach(chip=>{
+    const gi = parseInt(chip.dataset.gi);
+    const si = parseInt(chip.dataset.si);
+    chip.classList.toggle('active-step', gi===activeProgIdx && si===activeStepIdx);
+    chip.classList.toggle('was-active',  gi===activeProgIdx && si < activeStepIdx);
+  });
+  document.querySelectorAll('.play-btn').forEach(btn=>{
+    const gi = parseInt(btn.dataset.gi);
+    const on = gi===activeProgIdx;
+    btn.classList.toggle('on', on);
+    btn.textContent = on ? '⏹ STOP' : '▶ STEP';
+  });
+  document.querySelectorAll('.prog-item').forEach(item=>{
+    const btn = item.querySelector('.play-btn');
+    if(btn) item.classList.toggle('playing', parseInt(btn.dataset.gi)===activeProgIdx);
+  });
+}
+
+function showProgStep(progChords){
+  const ch = progChords[activeStepIdx];
+  showProgViz(ch.chordPcs, ch.degPc, `${ch.name} (${ch.numeral}) — ${activeStepIdx+1}/${progChords.length}`);
+  selectedDegreeIdx = ch.di;
+  buildProgKeyStrip();
+}
+
+function buildProgMode(){
+  buildProgKeyStrip();
+  buildProgList();
+}
+
+// ════════════════════════════════════════
+// POPULATE SELECTS
+// ════════════════════════════════════════
+function populateSelects(){
+  const rs=document.getElementById('root-select');
+  NOTE_NAMES.forEach((n,i)=>{const o=document.createElement('option');o.value=i;o.textContent=n+(NOTE_FLAT[i]!==n?' / '+NOTE_FLAT[i]:'');if(i===4)o.selected=true;rs.appendChild(o);});
+
+  const ss=document.getElementById('scale-select');
+  Object.entries(SCALES).forEach(([key,s])=>{const o=document.createElement('option');o.value=key;o.textContent=s.name;if(key==='major')o.selected=true;ss.appendChild(o);});
+
+  const ts=document.getElementById('tuning-select');
+  const groups={
+    'Standard':['standard','eb_standard','d_standard','c_standard'],
+    'Drop':['drop_d','drop_cs','drop_c','drop_as','drop_a'],
+    'DADGAD':['dadgad','dadgad_flat','dadgad_down'],
+    'Open':['open_g','open_d','open_e','open_a','open_c','open_dm'],
+    'Other':['double_drop_d','nst'],
+  };
+  Object.entries(groups).forEach(([gname,keys])=>{
+    const og=document.createElement('optgroup');og.label=gname;
+    keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=TUNING_LABELS[k];ts.appendChild(o);});
+    ts.appendChild(og);
+    keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=TUNING_LABELS[k];og.appendChild(o);});
+  });
+}
+
+// ════════════════════════════════════════
+// VIEW / MODE SWITCHING
+// ════════════════════════════════════════
+function setView(v){
+  currentView=v;
+  document.getElementById('btn-guitar').className='view-btn'+(v==='guitar'?' active':'');
+  document.getElementById('btn-piano').className='view-btn'+(v==='piano'?' active':'');
+  document.getElementById('tuning-group').style.display=v==='guitar'?'':'none';
+  document.getElementById('frets-group').style.display=v==='guitar'?'':'none';
+  document.getElementById('octaves-group').style.display=v==='piano'?'':'none';
+  render();
+  // If a chord is selected, re-trigger it to update guitar/piano visibility
+  if(currentMode==='chord'&&selectedChord!==null){
+    const activeCard=document.querySelector('.chord-card.active');
+    if(activeCard)activeCard.click();
+  }
+  // Re-draw prog viz if a degree is selected
+  if(currentMode==='prog'&&selectedDegreeIdx!==null){
+    const chords=getDiatonicChords(currentRoot,currentScale);
+    const ch=chords[selectedDegreeIdx];
+    if(ch) showProgViz(ch.chordPcs,ch.degPc,`${ch.name} (${ch.numeral})`);
+  }
+}
+
+function setMode(m){
+  currentMode=m;
+  if(m!=='prog'){ stopProgPlayback(); selectedDegreeIdx=null; }
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.mode-tab[onclick="setMode('${m}')"]`).classList.add('active');
+  document.getElementById('mode-scale').style.display=m==='scale'?'':'none';
+  document.getElementById('mode-chord').style.display=m==='chord'?'':'none';
+  document.getElementById('mode-prog').style.display=m==='prog'?'':'none';
+  document.getElementById('mode-help').style.display=m==='help'?'':'none';
+  if(m==='help') buildInstructions();
+  render();
+}
+
+// ════════════════════════════════════════
+// INSTRUCTIONS
+// ════════════════════════════════════════
+function helpSection(title, body){
+  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px;">${title}</div>
+    <div style="font-size:13px;color:var(--text);opacity:.8;line-height:1.7;">${body}</div>
+  </div>`;
+}
+
+function buildInstructions(){
+  const wrap = document.getElementById('mode-help');
+  if(wrap.dataset.built) return;
+  wrap.dataset.built = '1';
+  wrap.innerHTML = `<div style="max-width:700px;margin:0 auto;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">How to use</div>
+    <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Scale, Tuning & Chord Visualizer</h2>
+    ${helpSection('🎸 / 🎹 Guitar & Piano Toggle','Top-right of the header. Switches every visualiser between fretboard and keyboard across all modes. <b>Tuning</b> and <b>Fret</b> controls appear in Guitar view; <b>Octave</b> control appears in Piano view.')}
+    ${helpSection('Controls Bar (always visible at top)',`
+      <b>Root Note</b> — the key centre. Every scale, chord, and progression updates instantly.<br><br>
+      <b>Scale</b> — 24 scales from Major and Minor to Gypsy, Arabian, Egyptian, Japanese, and more. Changes notes everywhere and the diatonic chords in Chords and Progressions modes.<br><br>
+      <b>Tuning</b> — 20 guitar tunings: Standard, E♭/D/C Standard, all Drop tunings (D through A), DADGAD and its flat/whole-step variants, Open G/D/E/A/C/Dm, Double Drop D, and New Standard. Open-string labels on the fretboard update live.<br><br>
+      <b>Frets</b> — 12, 15, or 17 frets.<br><br>
+      <b>Octaves</b> (Piano view) — 1, 2, or 3 octaves of keyboard.
+    `)}
+    ${helpSection('SCALES Mode','Shows the selected scale across the full fretboard or keyboard. <b>Gold filled dot</b> = root note. <b>Coloured outline dots</b> = other scale tones, labelled by interval (♭3, 5, ♭7…). The info card shows the notes in your key, the interval formula, step pattern (W/H), and genres. Tap any scale in the browser grid at the bottom to switch instantly.')}
+    ${helpSection('CHORDS Mode',`
+      Four chord-type tabs: <b>Triads · 7th Chords · Extended · Add/Other</b>.<br><br>
+      Cards are generated for every chord type on every scale degree. <b>Bright</b> = diatonic (all notes in the scale). <b>Dimmed</b> = non-diatonic (chromatic or borrowed — not wrong, just outside the key).<br><br>
+      <b>Guitar view:</b> each card shows a mini fret diagram. <b>Piano view:</b> each card shows a mini one-octave keyboard preview.<br><br>
+      <b>Tap any card</b> to expand: larger diagram, colour-coded note pills, chord description, a full keyboard panel, and the full fretboard showing every position that chord appears.
+    `)}
+    ${helpSection('PROGRESSIONS Mode',`
+      <b>Diatonic chord strip</b> — every chord in the current key with its Roman numeral and harmonic function:<br>
+      <span style="color:#50c8a0">●</span> <b>Tonic</b> (I, iii, vi) — home &amp; rest &nbsp;|&nbsp;
+      <span style="color:#8b7fe8">●</span> <b>Subdominant</b> (ii, IV) — movement &nbsp;|&nbsp;
+      <span style="color:#e05a6a">●</span> <b>Dominant</b> (V, vii°) — tension<br><br>
+      <b>Tap a chord card</b> — in Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Piano view highlights chord keys brightly over dimly-lit scale keys.<br><br>
+      <b>Progression list</b> — 20 progressions across 5 categories (Classic Major, Classic Minor, Modal &amp; Exotic, Jazz &amp; Advanced, Blues &amp; Rock). Each row shows the Roman numerals for that key.<br><br>
+      <b>Tap any Roman numeral chip</b> to jump to that chord and see it on the neck/keys.<br><br>
+      <b>▶ STEP THROUGH</b> — auto-cycles through each chord every 1.4 sec. The active chip glows gold, the degree card highlights, and the fretboard/piano updates live. Hit ⏹ STOP to pause.
+    `)}
+    ${helpSection('Colour System — consistent across all modes &amp; views',`
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+        ${[[0,'#f0a500','R Root'],[2,'#60b8d0','2'],[3,'#7dc85a','♭3'],[4,'#a0c860','3'],[5,'#8b7fe8','4'],[6,'#e07a30','♭5 blue note'],[7,'#50c8a0','5'],[9,'#60a8d0','6'],[10,'#e0c040','♭7'],[11,'#c07040','7'],[1,'#e05a6a','♭2'],[8,'#d060b8','♭6']].map(([,c,l])=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:50%;background:${c};display:inline-block;flex-shrink:0"></span>${l}</span>`).join('')}
+      </div>
+    `)}
+    ${helpSection('Save as iPhone Home Screen App','Open in <b>Safari</b> → tap the <b>Share</b> button (↑ box) → <b>"Add to Home Screen"</b>. Launches fullscreen, works fully offline. No internet needed after the first load.')}
+  </div>`;
+}
+
+function updateTuningBadge(){
+  const w=document.getElementById('tuning-badge-wrap');
+  w.innerHTML=currentView==='guitar'?`<div class="tuning-badge">${TUNING_NOTES[currentTuning]}</div>`:'';
+}
+
+// ════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════
+function render(){
+  const openStrings=TUNINGS[currentTuning];
+
+  if(currentMode==='scale'){
+    const scaleSet=getScaleSet(currentRoot,currentScale);
+    const ivMap={};
+    SCALES[currentScale].intervals.forEach(iv=>{ivMap[(currentRoot+iv)%12]=iv;});
+
+    if(currentView==='guitar'){
+      document.getElementById('guitar-view-scale').style.display='';
+      document.getElementById('piano-view-scale').style.display='none';
+      drawFretboard('fretboard-svg',scaleSet,ivMap,openStrings,numFrets);
+    } else {
+      document.getElementById('guitar-view-scale').style.display='none';
+      document.getElementById('piano-view-scale').style.display='';
+      drawPiano('piano-svg-scale',scaleSet,ivMap,numOctaves,840,180);
+    }
+    buildLegend();
+    buildInfoCard();
+    document.querySelectorAll('.scale-pill').forEach((p,i)=>{
+      p.classList.toggle('active',Object.keys(SCALES)[i]===currentScale);
+    });
+  }
+
+  if(currentMode==='chord'){
+    buildChordTypeTabs();
+    buildChordCards();
+  }
+
+  if(currentMode==='prog'){
+    buildProgMode();
+  }
+
+  updateTuningBadge();
+}
+
+// ════════════════════════════════════════
+// EVENTS
+// ════════════════════════════════════════
+document.getElementById('root-select').addEventListener('change',e=>{currentRoot=parseInt(e.target.value);selectedChord=null;stopProgPlayback();selectedDegreeIdx=null;render();});
+document.getElementById('scale-select').addEventListener('change',e=>{currentScale=e.target.value;selectedChord=null;stopProgPlayback();selectedDegreeIdx=null;render();});
+document.getElementById('tuning-select').addEventListener('change',e=>{currentTuning=e.target.value;render();});
+document.querySelectorAll('.tog-btn[data-frets]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tog-btn[data-frets]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');numFrets=parseInt(btn.dataset.frets);render();
+  });
+});
+document.querySelectorAll('.tog-btn[data-oct]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tog-btn[data-oct]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');numOctaves=parseInt(btn.dataset.oct);render();
+  });
+});
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+populateSelects();
+buildScaleGrid();
+render();
+</script>
+</body>
+</html>
