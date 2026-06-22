@@ -57,7 +57,7 @@ select:focus{border-color:var(--gold);}
 .toggle-row{display:flex;gap:6px;}
 .tog-btn{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);opacity:.65;font-family:'Space Mono',monospace;font-weight:700;font-size:13px;padding:14px 8px;cursor:pointer;transition:all .15s;line-height:1;text-align:center;}
 .tog-btn.active{background:var(--gold);border-color:var(--gold);color:#000;opacity:1;font-weight:700;}
-.tuning-badge{font-family:'Space Mono',monospace;font-size:10px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.3);border-radius:5px;color:var(--gold);padding:4px 8px;letter-spacing:.05em;align-self:flex-end;white-space:nowrap;}
+.tuning-badge{font-family:'Space Mono',monospace;font-size:10px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.3);border-radius:5px;color:var(--gold);padding:4px 8px;letter-spacing:.05em;white-space:nowrap;width:100%;box-sizing:border-box;text-align:center;}
 
 /* MAIN */
 main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
@@ -204,11 +204,11 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 /* playback controls */
 .prog-playback{display:flex;gap:6px;align-items:center;margin-top:8px;}
 .play-btn{
-  font-family:'Space Mono',monospace;font-size:10px;
-  padding:5px 12px;border-radius:5px;border:1px solid var(--border2);
-  background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .15s;
+  font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.04em;
+  padding:12px 22px;border-radius:8px;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--text);opacity:.75;cursor:pointer;transition:all .15s;
 }
-.play-btn.on{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700;}
+.play-btn.on{background:var(--gold);border-color:var(--gold);color:#000;opacity:1;font-weight:700;}
 .prog-step-indicator{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-left:4px;}
 
 /* detail viz below selected progression */
@@ -276,7 +276,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .prog-item-numerals{flex-wrap:wrap;}
   .prog-numeral-chip{padding:6px 10px;font-size:11px;}
 
-  .play-btn{padding:7px 14px;font-size:11px;}
+  .play-btn{padding:11px 18px;font-size:12px;}
 }
 
 /* ── iPhone (up to 430px) — primary mobile target ── */
@@ -295,7 +295,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .ctrl-label{font-size:8px;}
   select{font-size:11px;padding:10px 20px 10px 8px;width:100%;}
   .tog-btn{padding:9px 4px;font-size:10px;text-align:center;}
-  #tuning-badge-wrap{display:none;} /* hide badge on small screens, saves space */
+  .tuning-badge{font-size:8px;padding:3px 4px;}
 
   main{padding:12px 12px 100px;}
 
@@ -457,6 +457,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
     <div class="ctrl-group" id="tuning-group">
       <div class="ctrl-label">Tuning</div>
       <select id="tuning-select"></select>
+      <div id="tuning-badge-wrap"></div>
     </div>
     <div class="ctrl-group" id="frets-group">
       <div class="ctrl-label">Frets</div>
@@ -474,7 +475,6 @@ body.splash-locked{overflow:hidden;height:100vh;}
         <button class="tog-btn" data-oct="3">3</button>
       </div>
     </div>
-    <div id="tuning-badge-wrap"></div>
   </div>
 </div>
 
@@ -556,6 +556,16 @@ body.splash-locked{overflow:hidden;height:100vh;}
     </div>
     <div class="prog-key-strip" id="prog-key-strip"></div>
 
+    <!-- Step speed control -->
+    <div class="ctrl-group" style="max-width:280px;margin:14px 0 4px;">
+      <div class="ctrl-label">Step Speed</div>
+      <div class="toggle-row" id="prog-speed-row">
+        <button class="tog-btn" data-speed="2400">SLOW</button>
+        <button class="tog-btn active" data-speed="1600">MED</button>
+        <button class="tog-btn" data-speed="900">FAST</button>
+      </div>
+    </div>
+
     <!-- Active chord viz -->
     <div class="prog-viz-wrap" id="prog-viz-wrap">
       <!-- Chord name + info -->
@@ -564,7 +574,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
         <div id="prog-viz-notes" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em"></div>
       </div>
       <!-- Mini chord diagrams row (one per string set voicing) -->
-      <div id="prog-chord-diagrams" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-start;"></div>
+      <div id="prog-chord-diagrams" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-start;justify-content:center;"></div>
       <!-- Full neck / piano -->
       <div id="prog-guitar-viz">
         <div class="viz-wrap"><svg id="prog-fretboard-svg" viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg"></svg></div>
@@ -1445,6 +1455,7 @@ let selectedDegreeIdx = null;   // which degree card is highlighted
 let activeProgIdx = null;       // which progression row is playing
 let activeStepIdx = null;       // which step within that progression
 let progStepTimer = null;       // auto-step interval
+let progStepDuration = 1600;    // ms between steps, user-adjustable
 
 // ════════════════════════════════════════
 // BUILD DIATONIC KEY STRIP
@@ -1557,7 +1568,7 @@ function showProgViz(chordPcs, rootPc, label){
       if(voicing.filter(f=>f>=0).length < 3) return;
       shown++;
       const box = document.createElement('div');
-      box.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 10px 6px;';
+      box.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 10px 6px;flex:1 1 0;min-width:84px;max-width:130px;box-sizing:border-box;';
       const posLabel = document.createElement('div');
       posLabel.style.cssText='font-family:"Space Mono",monospace;font-size:8px;color:var(--muted);text-align:center;margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase;';
       posLabel.textContent = lo===0?'Open Position':`Position ${lo}`;
@@ -1592,6 +1603,17 @@ function showProgViz(chordPcs, rootPc, label){
 // ════════════════════════════════════════
 // BUILD PROGRESSION LIST
 // ════════════════════════════════════════
+function selectProgStep(globalIdx, progChords, si){
+  stopProgPlayback();
+  activeProgIdx = globalIdx;
+  activeStepIdx = si;
+  const ch = progChords[si];
+  showProgViz(ch.chordPcs, ch.degPc, `${ch.name} (${ch.numeral}) — ${si+1}/${progChords.length}`);
+  selectedDegreeIdx = ch.di;
+  buildProgKeyStrip();
+  updateProgChips();
+}
+
 function buildProgList(){
   const wrap = document.getElementById('prog-list-wrap');
   wrap.innerHTML = '';
@@ -1637,22 +1659,20 @@ function buildProgList(){
       item.querySelectorAll('.prog-numeral-chip').forEach(chip=>{
         chip.addEventListener('click', e=>{
           e.stopPropagation();
-          stopProgPlayback();
           const si = parseInt(chip.dataset.si);
-          activeProgIdx = globalIdx;
-          activeStepIdx = si;
-          const ch = progChords[si];
-          showProgViz(ch.chordPcs, ch.degPc, `${ch.name} (${ch.numeral}) — ${si+1}/${progChords.length}`);
-          selectedDegreeIdx = ch.di;
-          buildProgKeyStrip();
-          updateProgChips();
+          selectProgStep(globalIdx, progChords, si);
         });
       });
 
       item.querySelector('.play-btn').addEventListener('click', e=>{
         e.stopPropagation();
-        if(isPlaying){ stopProgPlayback(); buildProgList(); }
+        if(activeProgIdx === globalIdx && progStepTimer){ stopProgPlayback(); buildProgList(); }
         else { startProgPlayback(globalIdx, progChords); }
+      });
+
+      item.addEventListener('click', e=>{
+        if(e.target.closest('.prog-numeral-chip') || e.target.closest('.play-btn')) return;
+        selectProgStep(globalIdx, progChords, 0);
       });
 
       itemsDiv.appendChild(item);
@@ -1682,7 +1702,7 @@ function startProgPlayback(globalIdx, progChords){
     activeStepIdx = (activeStepIdx + 1) % progChords.length;
     showProgStep(progChords);
     updateProgChips();
-  }, 1600);
+  }, progStepDuration);
 }
 
 function stopProgPlayback(){
@@ -1849,10 +1869,12 @@ function buildAbout(){
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">About</div>
     <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Created by Ian Dominguez</h2>
     ${helpSection('Bio',`
-      I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard).
+      I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard)
+      <br><br>
       With no formal training in Music Theory... I created this app because I was tired of guessing how music all works together.
       <br><br>
-      Use this app to quickly visualize the mystery of music theory, special tunings, unique scales, every chord, and how all that works across music progressions.
+      Use this app to quickly visualize the mystery of music theory, special tunings, unique scales, every chord, and how it works across music progressions.
+      <br><br>
       If you like this app, please consider donating to my Venmo.
       <br><br>
       Thank you very much, and Enjoy!
@@ -1930,6 +1952,21 @@ document.querySelectorAll('.tog-btn[data-oct]').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tog-btn[data-oct]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');numOctaves=parseInt(btn.dataset.oct);render();
+  });
+});
+document.querySelectorAll('.tog-btn[data-speed]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tog-btn[data-speed]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    progStepDuration=parseInt(btn.dataset.speed);
+    if(progStepTimer && window._activeProgChords){
+      clearInterval(progStepTimer);
+      progStepTimer=setInterval(()=>{
+        activeStepIdx=(activeStepIdx+1)%window._activeProgChords.length;
+        showProgStep(window._activeProgChords);
+        updateProgChips();
+      },progStepDuration);
+    }
   });
 });
 
