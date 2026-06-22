@@ -24,21 +24,28 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 }
 
 /* HEADER */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 20px 14px;}
-.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px 16px;}
+.header-inner{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+.header-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
 .eyebrow{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:4px;}
 h1{font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.025em;line-height:1;}
 h1 span{color:var(--gold);}
 
-/* MODE TABS */
-.mode-tabs{display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
-.mode-tab{padding:12px 20px;cursor:pointer;font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.08em;color:var(--muted);border:none;background:none;transition:all .15s;white-space:nowrap;}
-.mode-tab.active{background:var(--gold);color:#000;font-weight:700;}
+/* SECONDARY NAV (About / How To Use / Resync) */
+.header-secondary-nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.secondary-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);opacity:.7;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;padding:7px 11px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.secondary-btn:hover,.secondary-btn:active{opacity:1;border-color:var(--gold);color:var(--gold);}
+.secondary-btn.active{opacity:1;border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
 
-/* VIEW TOGGLE */
-.view-toggle{display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
-.view-btn{padding:7px 12px;cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--muted);border:none;background:none;transition:all .15s;}
-.view-btn.active{background:var(--surface3);color:var(--text);}
+/* MODE TABS — primary, dominant */
+.mode-tabs{display:flex;gap:8px;}
+.mode-tab{flex:1;padding:16px 10px;cursor:pointer;font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--text);opacity:.65;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;transition:all .15s;white-space:nowrap;text-align:center;}
+.mode-tab.active{background:var(--gold);color:#000;opacity:1;border-color:var(--gold);box-shadow:0 4px 18px rgba(240,165,0,.3);}
+
+/* VIEW TOGGLE — also dominant, stacked under mode tabs */
+.view-toggle{display:flex;gap:8px;}
+.view-btn{flex:1;padding:14px 10px;cursor:pointer;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--text);opacity:.65;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;transition:all .15s;text-align:center;}
+.view-btn.active{background:var(--surface3);color:var(--gold);opacity:1;border-color:var(--gold);}
 
 /* CONTROLS */
 .controls{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;position:sticky;top:0;z-index:100;}
@@ -389,21 +396,17 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   position:absolute;inset:0;width:100%;height:100%;
   object-fit:contain;object-position:center;z-index:0;
 }
+#splash-btn-row{position:relative;z-index:1;display:flex;gap:12px;width:100%;max-width:380px;}
 #splash-enter-btn,#splash-venmo-link,#splash-refresh-btn{position:relative;z-index:1;}
-#splash-enter-btn{
-  font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;
-  background:var(--gold);color:#000;font-weight:700;border:none;border-radius:8px;
-  padding:14px 38px;cursor:pointer;transition:transform .15s,opacity .15s;
-  box-shadow:0 6px 24px rgba(0,0,0,.5);
+#splash-enter-btn,#splash-venmo-link{
+  flex:1;font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:700;border-radius:8px;padding:14px 16px;cursor:pointer;transition:transform .15s,opacity .15s;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);text-align:center;text-decoration:none;
+  display:flex;align-items:center;justify-content:center;white-space:nowrap;
 }
-#splash-enter-btn:active{transform:scale(.96);opacity:.85;}
-#splash-venmo-link{
-  font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.06em;
-  color:var(--text);text-decoration:none;border:1px solid rgba(255,255,255,.3);
-  border-radius:8px;padding:9px 18px;transition:all .15s;background:rgba(0,0,0,.35);
-  backdrop-filter:blur(4px);
-}
-#splash-venmo-link:hover,#splash-venmo-link:active{border-color:var(--gold);color:var(--gold);}
+#splash-enter-btn{background:var(--gold);color:#000;border:none;}
+#splash-venmo-link{background:#3d95ce;color:#fff;border:none;}
+#splash-enter-btn:active,#splash-venmo-link:active{transform:scale(.96);opacity:.85;}
 #splash-refresh-btn{
   font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;
   color:var(--muted);text-decoration:none;border:1px solid rgba(255,255,255,.2);
@@ -417,29 +420,33 @@ body.splash-locked{overflow:hidden;height:100vh;}
 <body class="splash-locked">
 <div id="splash-screen">
   <img id="splash-logo-bg" src="MV_Logo_1.png" alt="Music Visualizer logo">
-  <button id="splash-enter-btn" onclick="dismissSplash()">Enter App</button>
+  <div id="splash-btn-row">
+    <button id="splash-enter-btn" onclick="dismissSplash()">Enter App</button>
+    <a id="splash-venmo-link" href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener">💜 Venmo</a>
+  </div>
   <button id="splash-refresh-btn" onclick="forceRefresh()">⟳ Refresh / Resync</button>
-  <a id="splash-venmo-link" href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener">💜 Support on Venmo</a>
 </div>
 <header>
   <div class="header-inner">
-    <div>
-      <div class="eyebrow">Interactive Reference</div>
-      <h1>Scale, Tuning <span>&</span> Chord Visualizer</h1>
+    <div class="header-top-row">
+      <div>
+        <div class="eyebrow">Interactive Reference</div>
+        <h1>Scale, Tuning <span>&</span> Chord Visualizer</h1>
+      </div>
+      <div class="header-secondary-nav">
+        <button class="secondary-btn" onclick="setMode('about')">ABOUT</button>
+        <button class="secondary-btn" onclick="setMode('help')">HOW TO USE</button>
+        <button class="secondary-btn" id="btn-resync" onclick="forceRefresh()" title="Refresh / Resync the app">⟳ RESYNC</button>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <div class="mode-tabs">
-        <button class="mode-tab active" onclick="setMode('scale')">SCALES</button>
-        <button class="mode-tab" onclick="setMode('chord')">CHORDS</button>
-        <button class="mode-tab" onclick="setMode('prog')">PROGRESSIONS</button>
-        <button class="mode-tab" onclick="setMode('help')">HOW TO USE</button>
-        <button class="mode-tab" onclick="setMode('about')">ABOUT</button>
-      </div>
-      <div class="view-toggle">
-        <button class="view-btn active" id="btn-guitar" onclick="setView('guitar')">🎸 GUITAR</button>
-        <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 PIANO</button>
-        <button class="view-btn" id="btn-resync" onclick="forceRefresh()" title="Refresh / Resync the app">⟳</button>
-      </div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode('scale')">SCALES</button>
+      <button class="mode-tab" onclick="setMode('chord')">CHORDS</button>
+      <button class="mode-tab" onclick="setMode('prog')">PROGRESSIONS</button>
+    </div>
+    <div class="view-toggle">
+      <button class="view-btn active" id="btn-guitar" onclick="setView('guitar')">🎸 GUITAR</button>
+      <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 PIANO</button>
     </div>
   </div>
 </header>
@@ -589,10 +596,10 @@ body.splash-locked{overflow:hidden;height:100vh;}
 function dismissSplash(){
   document.getElementById('splash-screen').classList.add('hidden');
   document.body.classList.remove('splash-locked');
-  try{ localStorage.setItem('mv_entered','1'); }catch(e){}
+  try{ sessionStorage.setItem('mv_entered','1'); }catch(e){}
 }
 try{
-  if(localStorage.getItem('mv_entered')==='1'){
+  if(sessionStorage.getItem('mv_entered')==='1'){
     document.getElementById('splash-screen').classList.add('hidden');
     document.body.classList.remove('splash-locked');
   }
@@ -1777,8 +1784,9 @@ function setView(v){
 function setMode(m){
   currentMode=m;
   if(m!=='prog'){ stopProgPlayback(); selectedDegreeIdx=null; }
-  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector(`.mode-tab[onclick="setMode('${m}')"]`).classList.add('active');
+  document.querySelectorAll('.mode-tab,.secondary-btn').forEach(t=>t.classList.remove('active'));
+  const activeBtn=document.querySelector(`.mode-tab[onclick="setMode('${m}')"],.secondary-btn[onclick="setMode('${m}')"]`);
+  if(activeBtn) activeBtn.classList.add('active');
   document.getElementById('mode-scale').style.display=m==='scale'?'':'none';
   document.getElementById('mode-chord').style.display=m==='chord'?'':'none';
   document.getElementById('mode-prog').style.display=m==='prog'?'':'none';
