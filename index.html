@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Music Visualizer">
+<meta name="apple-mobile-web-app-title" content="Music Theory Visualizer">
 <meta name="theme-color" content="#111113">
-<title>Music Visualizer</title>
+<title>Music Theory Visualizer</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 :root{
@@ -423,7 +423,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
 </head>
 <body class="splash-locked">
 <div id="splash-screen">
-  <img id="splash-logo-bg" src="MV_Logo_1.png" alt="Music Visualizer logo">
+  <img id="splash-logo-bg" src="MV_Logo_1.png" alt="Music Theory Visualizer logo">
   <div id="splash-btn-row">
     <button id="splash-enter-btn" onclick="dismissSplash()">Enter App</button>
     <a id="splash-venmo-link" href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener">💜 Venmo</a>
@@ -433,7 +433,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
 <header>
   <div class="header-inner">
     <div class="header-top-row" style="text-align:center;">
-      <h1>Music Visualizer</h1>
+      <h1>Music Theory Visualizer</h1>
       <div class="app-subtitle">Scale, Tuning &amp; Chord Reference</div>
     </div>
     <div class="header-secondary-nav">
@@ -1798,7 +1798,11 @@ function setView(v){
   document.getElementById('frets-group').style.display=v==='guitar'?'':'none';
   document.getElementById('octaves-group').style.display=v==='piano'?'':'none';
   render();
-  // If a chord is selected, re-trigger it to update guitar/piano visibility
+  refreshActiveSelection();
+}
+
+function refreshActiveSelection(){
+  // If a chord is selected, re-trigger it to update guitar/piano visibility & sizing
   if(currentMode==='chord'&&selectedChord!==null){
     const activeCard=document.querySelector('.chord-card.active');
     if(activeCard)activeCard.click();
@@ -1833,7 +1837,7 @@ function setMode(m){
 const BUG_REPORT_EMAIL = 'bugs@iandominguez.com';
 function bugReportSection(){
   return helpSection('Found a Bug?', `Run into something broken, inaccurate, or confusing? Let me know and I'll look into it.<br>
-    <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Visualizer%20Bug%20Report">🐛 Report a Bug</a>`);
+    <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Theory%20Visualizer%20Bug%20Report">🐛 Report a Bug</a>`);
 }
 function helpSection(title, body){
   return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;">
@@ -1969,13 +1973,13 @@ document.getElementById('tuning-select').addEventListener('change',e=>{currentTu
 document.querySelectorAll('.tog-btn[data-frets]').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tog-btn[data-frets]').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');numFrets=parseInt(btn.dataset.frets);render();
+    btn.classList.add('active');numFrets=parseInt(btn.dataset.frets);render();refreshActiveSelection();
   });
 });
 document.querySelectorAll('.tog-btn[data-oct]').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tog-btn[data-oct]').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');numOctaves=parseInt(btn.dataset.oct);render();
+    btn.classList.add('active');numOctaves=parseInt(btn.dataset.oct);render();refreshActiveSelection();
   });
 });
 document.querySelectorAll('.tog-btn[data-speed]').forEach(btn=>{
