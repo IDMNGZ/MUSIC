@@ -52,7 +52,7 @@ h1 span{color:var(--gold);}
 .controls{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;position:sticky;top:0;z-index:100;}
 .controls-inner{max-width:1100px;margin:0 auto;display:flex;gap:10px;flex-wrap:nowrap;align-items:stretch;}
 .ctrl-group{display:flex;flex-direction:column;gap:4px;flex:1 1 0;min-width:0;}
-.ctrl-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;text-align:center;}
+.ctrl-label{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.13em;color:var(--text);opacity:.85;text-transform:uppercase;text-align:center;}
 select{width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.04em;padding:14px 26px 14px 12px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23f0a500'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;transition:border-color .15s;text-align:center;text-align-last:center;}
 select:focus{border-color:var(--gold);}
 .toggle-row{display:flex;gap:6px;}
@@ -296,7 +296,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .controls{padding:8px 12px;}
   .controls-inner{flex-wrap:nowrap;gap:6px;}
   .ctrl-group{flex:1 1 0;min-width:0;}
-  .ctrl-label{font-size:8px;}
+  .ctrl-label{font-size:9.5px;}
   select{font-size:11px;padding:10px 20px 10px 8px;width:100%;}
   .tog-btn{padding:9px 4px;font-size:10px;text-align:center;}
   .tuning-badge{font-size:8px;padding:3px 4px;}
@@ -438,6 +438,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
       <h1>Music Theory Visualizer</h1>
       <div class="app-subtitle">Scale, Tuning &amp; Chord Reference</div>
     </div>
+    <div class="header-divider"></div>
     <div class="header-secondary-nav">
       <button class="secondary-btn" onclick="setMode('about')">ABOUT</button>
       <button class="secondary-btn" onclick="setMode('help')">HOW TO USE</button>
@@ -666,11 +667,11 @@ const TUNINGS = {
   double_drop_d:[38,45,50,55,59,62], nst:[36,43,50,57,64,67],
 };
 const TUNING_LABELS = {
-  standard:'Standard (E A D G B e)', eb_standard:'E♭ Standard',
+  standard:'E Standard', eb_standard:'E♭ Standard',
   d_standard:'D Standard', c_standard:'C Standard',
   drop_d:'Drop D', drop_cs:'Drop C♯', drop_c:'Drop C',
   drop_as:'Drop A♯', drop_a:'Drop A', dadgad:'DADGAD',
-  dadgad_flat:'DADGAD ♭', dadgad_down:'DADGAD −1 step',
+  dadgad_flat:'DADGAD (Half-Step Down)', dadgad_down:'DADGAD (Whole-Step Down)',
   open_g:'Open G', open_d:'Open D', open_e:'Open E',
   open_a:'Open A', open_c:'Open C', open_dm:'Open Dm',
   double_drop_d:'Double Drop D', nst:'New Standard Tuning',
@@ -1866,8 +1867,12 @@ function setMode(m){
 // ════════════════════════════════════════
 const BUG_REPORT_EMAIL = 'RogueTheoryStudio@pm.me';
 function bugReportSection(){
-  return helpSection('Found a Bug?', `Run into something broken, inaccurate, or confusing? Have an idea or suggestion for the app? Let me know — bug reports and suggestions both go to the same place.<br>
-    <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Theory%20Visualizer%20Bug%20Report">🐛 Report a Bug / Suggestion</a>`);
+  return helpSection('Found a Bug? Have a Suggestion?', `
+    If you find something in the app that is broken, inaccurate, or confusing.<br>
+    Or if you have an idea or suggestion for the app.<br>
+    Or you just want to compliment me...<br><br>
+    Please let me know!<br>
+    <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Theory%20Visualizer%20Feedback">CONTACT</a>`);
 }
 function helpSection(title, body){
   return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;">
@@ -1926,6 +1931,7 @@ function buildAbout(){
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">About</div>
     <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Created by Ian Dominguez</h2>
     ${helpSection('Bio',`
+      <img src="bio-photo.jpg" alt="Ian Dominguez" style="display:block;width:120px;height:120px;border-radius:50%;object-fit:cover;margin:0 auto 16px;border:2px solid var(--gold);" onerror="this.style.display='none'">
       I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard)
       <br><br>
       With no formal training in Music Theory... I created this app because I was tired of guessing how music theory works.
