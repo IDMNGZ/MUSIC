@@ -395,6 +395,13 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 #splash-enter-btn{background:var(--gold);color:#000;border:none;}
 #splash-venmo-link{background:#3d95ce;color:#fff;border:none;}
 #splash-enter-btn:active,#splash-venmo-link:active{transform:scale(.96);opacity:.85;}
+.about-venmo-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;
+  font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:700;border-radius:8px;padding:14px 16px;cursor:pointer;transition:transform .15s,opacity .15s;
+  background:#3d95ce;color:#fff;border:none;text-align:center;text-decoration:none;
+}
+.about-venmo-btn:active{transform:scale(.96);opacity:.85;}
 #splash-refresh-btn{
   font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;
   color:var(--muted);text-decoration:none;border:1px solid rgba(255,255,255,.2);
@@ -1841,15 +1848,25 @@ function buildAbout(){
   wrap.innerHTML = `<div style="max-width:560px;margin:0 auto;">
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">About</div>
     <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Created by Ian Dominguez</h2>
-    ${helpSection('Bio','Write a short bio here — a sentence or two about who you are and why you built this app.')}
+    ${helpSection('Bio',`
+      I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard).
+      With no formal training in Music Theory... I created this app because I was tired of guessing how music all works together.
+      <br><br>
+      Use this app to quickly visualize the mystery of music theory, special tunings, unique scales, every chord, and how all that works across music progressions.
+      If you like this app, please consider donating to my Venmo.
+      <br><br>
+      Thank you very much, and Enjoy!
+    `)}
     ${helpSection('Links',`
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <a href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none;">💜 Venmo — @IDMNGZ</a>
-        <a href="#" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;opacity:.85;">🌐 Website — add your link</a>
-        <a href="#" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;opacity:.85;">📷 Instagram / social — add your link</a>
+        <a href="https://www.iandominguez.com" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;opacity:.85;">🌐 iandominguez.com</a>
+        <a href="https://www.instagram.com/idmngz.me" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;opacity:.85;">📷 @idmngz.me</a>
       </div>
     `)}
-    ${helpSection('Support This App','If you enjoy using this app, I\'d really appreciate a donation via Venmo above — it helps me keep building and maintaining free tools like this one. 💜')}
+    ${helpSection('Support This App',`
+      <div>If you enjoy using this app, I'd really appreciate a donation — it helps me keep building and maintaining free tools like this one. 💜</div>
+      <a href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener" class="about-venmo-btn">💜 Donate on Venmo</a>
+    `)}
   </div>`;
 }
 
