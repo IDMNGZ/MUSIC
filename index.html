@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Music Viz">
+<meta name="apple-mobile-web-app-title" content="Music Visualizer">
 <meta name="theme-color" content="#111113">
-<title>Scale, Tuning & Chord Visualizer</title>
+<title>Music Visualizer</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 :root{
@@ -28,6 +28,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .header-inner{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
 .header-top-row{display:block;}
 .eyebrow{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:4px;}
+.app-subtitle{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:3px;}
 h1{font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.025em;line-height:1;}
 h1 span{color:var(--gold);}
 
@@ -184,6 +185,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 }
 .prog-item:hover{border-color:var(--border2);background:var(--surface2);}
 .prog-item.playing{border-color:var(--gold);background:var(--gold-dim);}
+.prog-item.selected{border-color:var(--border2);background:var(--surface2);}
 .prog-item-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .prog-item-name{font-size:13px;font-weight:600;color:var(--text);min-width:160px;}
 .prog-item-numerals{display:flex;gap:5px;align-items:center;}
@@ -402,6 +404,13 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   background:#3d95ce;color:#fff;border:none;text-align:center;text-decoration:none;
 }
 .about-venmo-btn:active{transform:scale(.96);opacity:.85;}
+.bug-report-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;
+  font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:700;border-radius:8px;padding:14px 16px;cursor:pointer;transition:transform .15s,opacity .15s;
+  background:var(--surface2);color:var(--text);border:1px solid var(--border2);text-align:center;text-decoration:none;
+}
+.bug-report-btn:hover,.bug-report-btn:active{border-color:var(--gold);color:var(--gold);transform:scale(.98);}
 #splash-refresh-btn{
   font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;
   color:var(--muted);text-decoration:none;border:1px solid rgba(255,255,255,.2);
@@ -423,9 +432,9 @@ body.splash-locked{overflow:hidden;height:100vh;}
 </div>
 <header>
   <div class="header-inner">
-    <div class="header-top-row">
-      <div class="eyebrow">Interactive Reference</div>
-      <h1>Scale, Tuning <span>&</span> Chord Visualizer</h1>
+    <div class="header-top-row" style="text-align:center;">
+      <h1>Music Visualizer</h1>
+      <div class="app-subtitle">Scale, Tuning &amp; Chord Reference</div>
     </div>
     <div class="header-secondary-nav">
       <button class="secondary-btn" onclick="setMode('about')">ABOUT</button>
@@ -556,10 +565,11 @@ body.splash-locked{overflow:hidden;height:100vh;}
     </div>
     <div class="prog-key-strip" id="prog-key-strip"></div>
 
-    <!-- Step speed control -->
-    <div class="ctrl-group" style="max-width:280px;margin:14px 0 4px;">
-      <div class="ctrl-label">Step Speed</div>
-      <div class="toggle-row" id="prog-speed-row">
+    <!-- Global playback controls (applies to whichever progression is selected) -->
+    <div class="ctrl-group" style="max-width:480px;margin:14px 0 4px;">
+      <div class="ctrl-label">Playback — tap a progression below, then Start</div>
+      <div class="toggle-row" id="prog-playback-row">
+        <button class="tog-btn" id="prog-global-play-btn" style="flex:1.6;" onclick="toggleGlobalProgPlayback()">▶ START</button>
         <button class="tog-btn" data-speed="2400">SLOW</button>
         <button class="tog-btn active" data-speed="1600">MED</button>
         <button class="tog-btn" data-speed="900">FAST</button>
@@ -1604,14 +1614,35 @@ function showProgViz(chordPcs, rootPc, label){
 // BUILD PROGRESSION LIST
 // ════════════════════════════════════════
 function selectProgStep(globalIdx, progChords, si){
-  stopProgPlayback();
+  pauseProgTimer();
   activeProgIdx = globalIdx;
   activeStepIdx = si;
+  window._activeProgChords = progChords;
+  window._activeProgGlobalIdx = globalIdx;
   const ch = progChords[si];
   showProgViz(ch.chordPcs, ch.degPc, `${ch.name} (${ch.numeral}) — ${si+1}/${progChords.length}`);
   selectedDegreeIdx = ch.di;
   buildProgKeyStrip();
   updateProgChips();
+  updateGlobalPlayButton();
+}
+
+function toggleGlobalProgPlayback(){
+  if(progStepTimer){
+    pauseProgTimer();
+    updateProgChips();
+  } else if(window._activeProgGlobalIdx!=null && window._activeProgChords){
+    startProgPlayback(window._activeProgGlobalIdx, window._activeProgChords);
+  }
+  updateGlobalPlayButton();
+}
+
+function updateGlobalPlayButton(){
+  const btn = document.getElementById('prog-global-play-btn');
+  if(!btn) return;
+  const playing = !!progStepTimer;
+  btn.textContent = playing ? '⏹ STOP' : '▶ START';
+  btn.classList.toggle('active', playing);
 }
 
 function buildProgList(){
@@ -1627,14 +1658,16 @@ function buildProgList(){
 
     cat.items.forEach((prog, pi)=>{
       const globalIdx = ci * 100 + pi;
-      const isPlaying = activeProgIdx === globalIdx;
+      const isSelected = activeProgIdx === globalIdx;
+      const isPlaying = isSelected && !!progStepTimer;
       const progChords = prog.degrees.map(d => chords[d % chords.length]);
 
       const item = document.createElement('div');
-      item.className = 'prog-item' + (isPlaying ? ' playing' : '');
+      item.className = 'prog-item' + (isPlaying ? ' playing' : isSelected ? ' selected' : '');
+      item.dataset.gi = globalIdx;
 
       const numeralChips = progChords.map((ch, si)=>{
-        const isActive = isPlaying && activeStepIdx === si;
+        const isActive = isSelected && activeStepIdx === si;
         const wasPast  = isPlaying && si < activeStepIdx;
         return `<div class="prog-numeral-chip${isActive?' active-step':wasPast?' was-active':''}" data-gi="${globalIdx}" data-si="${si}">${ch.numeral}</div>`;
       }).join('<span style="color:var(--muted2);font-size:11px;align-self:center">→</span>');
@@ -1647,10 +1680,7 @@ function buildProgList(){
         <div class="prog-item-desc">${prog.desc}</div>
         <div class="prog-item-genre" style="font-style:italic">${prog.genre}</div>
         <div class="prog-playback">
-          <button class="play-btn${isPlaying?' on':''}" data-gi="${globalIdx}">
-            ${isPlaying ? '⏹ STOP' : '▶ STEP'}
-          </button>
-          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-left:6px">
+          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);">
             ${progChords.map(ch=>`${ch.name}`).join(' → ')}
           </span>
         </div>
@@ -1664,14 +1694,8 @@ function buildProgList(){
         });
       });
 
-      item.querySelector('.play-btn').addEventListener('click', e=>{
-        e.stopPropagation();
-        if(activeProgIdx === globalIdx && progStepTimer){ stopProgPlayback(); buildProgList(); }
-        else { startProgPlayback(globalIdx, progChords); }
-      });
-
       item.addEventListener('click', e=>{
-        if(e.target.closest('.prog-numeral-chip') || e.target.closest('.play-btn')) return;
+        if(e.target.closest('.prog-numeral-chip')) return;
         selectProgStep(globalIdx, progChords, 0);
       });
 
@@ -1683,34 +1707,31 @@ function buildProgList(){
 }
 
 function startProgPlayback(globalIdx, progChords){
-  stopProgPlayback();
+  pauseProgTimer();
   activeProgIdx = globalIdx;
   activeStepIdx = 0;
   window._activeProgChords = progChords;
+  window._activeProgGlobalIdx = globalIdx;
   showProgStep(progChords);
-  updateProgChips();
-  // mark the row as playing
-  document.querySelectorAll('.prog-item').forEach((el,i)=>{
-    const btn = el.querySelector('.play-btn');
-    if(btn && parseInt(btn.dataset.gi)===globalIdx){
-      el.classList.add('playing');
-      btn.classList.add('on');
-      btn.textContent='⏹ STOP';
-    }
-  });
   progStepTimer = setInterval(()=>{
     activeStepIdx = (activeStepIdx + 1) % progChords.length;
     showProgStep(progChords);
     updateProgChips();
   }, progStepDuration);
+  updateProgChips();
+}
+
+function pauseProgTimer(){
+  clearInterval(progStepTimer);
+  progStepTimer = null;
 }
 
 function stopProgPlayback(){
-  clearInterval(progStepTimer);
-  progStepTimer = null;
+  pauseProgTimer();
   activeProgIdx = null;
   activeStepIdx = null;
   window._activeProgChords = null;
+  window._activeProgGlobalIdx = null;
 }
 
 function updateProgChips(){
@@ -1720,15 +1741,10 @@ function updateProgChips(){
     chip.classList.toggle('active-step', gi===activeProgIdx && si===activeStepIdx);
     chip.classList.toggle('was-active',  gi===activeProgIdx && si < activeStepIdx);
   });
-  document.querySelectorAll('.play-btn').forEach(btn=>{
-    const gi = parseInt(btn.dataset.gi);
-    const on = gi===activeProgIdx;
-    btn.classList.toggle('on', on);
-    btn.textContent = on ? '⏹ STOP' : '▶ STEP';
-  });
   document.querySelectorAll('.prog-item').forEach(item=>{
-    const btn = item.querySelector('.play-btn');
-    if(btn) item.classList.toggle('playing', parseInt(btn.dataset.gi)===activeProgIdx);
+    const gi = parseInt(item.dataset.gi);
+    item.classList.toggle('playing', gi===activeProgIdx && !!progStepTimer);
+    item.classList.toggle('selected', gi===activeProgIdx && !progStepTimer);
   });
 }
 
@@ -1742,6 +1758,7 @@ function showProgStep(progChords){
 function buildProgMode(){
   buildProgKeyStrip();
   buildProgList();
+  updateGlobalPlayButton();
 }
 
 // ════════════════════════════════════════
@@ -1813,6 +1830,11 @@ function setMode(m){
 // ════════════════════════════════════════
 // INSTRUCTIONS
 // ════════════════════════════════════════
+const BUG_REPORT_EMAIL = 'bugs@iandominguez.com';
+function bugReportSection(){
+  return helpSection('Found a Bug?', `Run into something broken, inaccurate, or confusing? Let me know and I'll look into it.<br>
+    <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Visualizer%20Bug%20Report">🐛 Report a Bug</a>`);
+}
 function helpSection(title, body){
   return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;">
     <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px;">${title}</div>
@@ -1849,8 +1871,8 @@ function buildInstructions(){
       <span style="color:#e05a6a">●</span> <b>Dominant</b> (V, vii°) — tension<br><br>
       <b>Tap a chord card</b> — in Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Piano view highlights chord keys brightly over dimly-lit scale keys.<br><br>
       <b>Progression list</b> — 20 progressions across 5 categories (Classic Major, Classic Minor, Modal &amp; Exotic, Jazz &amp; Advanced, Blues &amp; Rock). Each row shows the Roman numerals for that key.<br><br>
-      <b>Tap any Roman numeral chip</b> to jump to that chord and see it on the neck/keys.<br><br>
-      <b>▶ STEP THROUGH</b> — auto-cycles through each chord every 1.4 sec. The active chip glows gold, the degree card highlights, and the fretboard/piano updates live. Hit ⏹ STOP to pause.
+      <b>Tap any Roman numeral chip</b>, or anywhere on a progression card, to select it and jump to that chord on the neck/keys.<br><br>
+      <b>▶ START / ⏹ STOP</b> — the global playback bar above the list plays whichever progression is currently selected, auto-cycling through each chord. Use <b>SLOW / MED / FAST</b> next to it to control the step speed, even while playing.
     `)}
     ${helpSection('Colour System — consistent across all modes &amp; views',`
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
@@ -1858,6 +1880,7 @@ function buildInstructions(){
       </div>
     `)}
     ${helpSection('Save as iPhone Home Screen App','Open in <b>Safari</b> → tap the <b>Share</b> button (↑ box) → <b>"Add to Home Screen"</b>. Launches fullscreen, works fully offline. No internet needed after the first load.')}
+    ${bugReportSection()}
   </div>`;
 }
 
@@ -1889,6 +1912,7 @@ function buildAbout(){
       <div>If you enjoy using this app, I'd really appreciate a donation — it helps me keep building and maintaining free tools like this one. 💜</div>
       <a href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener" class="about-venmo-btn">💜 Donate on Venmo</a>
     `)}
+    ${bugReportSection()}
   </div>`;
 }
 
