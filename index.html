@@ -19,12 +19,11 @@
 body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
 /* iOS standalone web app — account for status bar */
 @media all and (display-mode:standalone){
-  header{padding-top:max(16px,env(safe-area-inset-top));}
   body{padding-bottom:env(safe-area-inset-bottom);}
 }
 
 /* HEADER */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px 16px;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px 16px;padding-top:calc(env(safe-area-inset-top) + 28px);}
 .header-inner{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
 .header-top-row{display:block;}
 .eyebrow{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:4px;}
@@ -34,6 +33,7 @@ h1 span{color:var(--gold);}
 
 /* SECONDARY NAV (About / How To Use / Resync) — same treatment as mode/view buttons, smaller scale */
 .header-secondary-nav{display:flex;gap:8px;width:100%;}
+.header-divider{height:1px;background:var(--border2);width:100%;margin:2px 0;}
 .secondary-btn{flex:1;padding:11px 8px;cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text);opacity:.65;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;transition:all .15s;white-space:nowrap;text-align:center;}
 .secondary-btn:hover,.secondary-btn:active{opacity:1;border-color:var(--gold);color:var(--gold);}
 .secondary-btn.active{opacity:1;border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
@@ -105,9 +105,9 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 .section-header::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* CHORD TYPE TABS */
-.chord-type-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px;}
-.chord-type-btn{padding:5px 12px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s;}
-.chord-type-btn.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+.chord-type-tabs{display:flex;gap:8px;margin-bottom:14px;}
+.chord-type-btn{flex:1;padding:14px 8px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);opacity:.65;font-family:'Space Mono',monospace;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;text-align:center;line-height:1;}
+.chord-type-btn.active{border-color:var(--gold);color:#000;opacity:1;background:var(--gold);font-weight:700;}
 
 /* CHORD CARDS GRID */
 .chord-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
@@ -285,7 +285,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 
 /* ── iPhone (up to 430px) — primary mobile target ── */
 @media(max-width:430px){
-  header{padding:10px 12px 8px;padding-top:calc(env(safe-area-inset-top) + 30px);}
+  header{padding:10px 12px 8px;padding-top:calc(env(safe-area-inset-top) + 34px);}
   .eyebrow{display:none;}
   h1{font-size:17px;}
 
@@ -317,8 +317,8 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .scale-pill-formula{display:none;}
 
   /* Chord mode */
-  .chord-type-tabs{gap:4px;}
-  .chord-type-btn{padding:7px 10px;font-size:10px;}
+  .chord-type-tabs{gap:6px;}
+  .chord-type-btn{padding:11px 4px;font-size:10.5px;}
   .chord-cards{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;}
   .chord-card{padding:8px;}
   .chord-card-name{font-size:12px;}
@@ -443,14 +443,15 @@ body.splash-locked{overflow:hidden;height:100vh;}
       <button class="secondary-btn" onclick="setMode('help')">HOW TO USE</button>
       <button class="secondary-btn" id="btn-resync" onclick="forceRefresh()" title="Refresh / Resync the app">⟳ RESYNC</button>
     </div>
+    <div class="header-divider"></div>
+    <div class="view-toggle">
+      <button class="view-btn active" id="btn-guitar" onclick="setView('guitar')">🎸 GUITAR</button>
+      <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 PIANO</button>
+    </div>
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="setMode('scale')">SCALES</button>
       <button class="mode-tab" onclick="setMode('chord')">CHORDS</button>
       <button class="mode-tab" onclick="setMode('prog')">PROGRESSIONS</button>
-    </div>
-    <div class="view-toggle">
-      <button class="view-btn active" id="btn-guitar" onclick="setView('guitar')">🎸 GUITAR</button>
-      <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 PIANO</button>
     </div>
   </div>
 </header>
