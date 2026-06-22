@@ -387,7 +387,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 #splash-screen.hidden{opacity:0;visibility:hidden;pointer-events:none;}
 #splash-logo-bg{
   position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;object-position:center;z-index:0;
+  object-fit:contain;object-position:center;z-index:0;
 }
 #splash-enter-btn,#splash-venmo-link,#splash-refresh-btn{position:relative;z-index:1;}
 #splash-enter-btn{
@@ -433,10 +433,12 @@ body.splash-locked{overflow:hidden;height:100vh;}
         <button class="mode-tab" onclick="setMode('chord')">CHORDS</button>
         <button class="mode-tab" onclick="setMode('prog')">PROGRESSIONS</button>
         <button class="mode-tab" onclick="setMode('help')">HOW TO USE</button>
+        <button class="mode-tab" onclick="setMode('about')">ABOUT</button>
       </div>
       <div class="view-toggle">
         <button class="view-btn active" id="btn-guitar" onclick="setView('guitar')">🎸 GUITAR</button>
         <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 PIANO</button>
+        <button class="view-btn" id="btn-resync" onclick="forceRefresh()" title="Refresh / Resync the app">⟳</button>
       </div>
     </div>
   </div>
@@ -579,13 +581,22 @@ body.splash-locked{overflow:hidden;height:100vh;}
   </div>
   <!-- HELP MODE -->
   <div id="mode-help" style="display:none;padding-top:4px;"></div>
+  <!-- ABOUT MODE -->
+  <div id="mode-about" style="display:none;padding-top:4px;"></div>
 </main>
 
 <script>
 function dismissSplash(){
   document.getElementById('splash-screen').classList.add('hidden');
   document.body.classList.remove('splash-locked');
+  try{ localStorage.setItem('mv_entered','1'); }catch(e){}
 }
+try{
+  if(localStorage.getItem('mv_entered')==='1'){
+    document.getElementById('splash-screen').classList.add('hidden');
+    document.body.classList.remove('splash-locked');
+  }
+}catch(e){}
 function forceRefresh(){
   if('caches' in window){
     caches.keys().then(names=>names.forEach(n=>caches.delete(n)));
@@ -1772,7 +1783,9 @@ function setMode(m){
   document.getElementById('mode-chord').style.display=m==='chord'?'':'none';
   document.getElementById('mode-prog').style.display=m==='prog'?'':'none';
   document.getElementById('mode-help').style.display=m==='help'?'':'none';
+  document.getElementById('mode-about').style.display=m==='about'?'':'none';
   if(m==='help') buildInstructions();
+  if(m==='about') buildAbout();
   render();
 }
 
@@ -1824,6 +1837,25 @@ function buildInstructions(){
       </div>
     `)}
     ${helpSection('Save as iPhone Home Screen App','Open in <b>Safari</b> → tap the <b>Share</b> button (↑ box) → <b>"Add to Home Screen"</b>. Launches fullscreen, works fully offline. No internet needed after the first load.')}
+  </div>`;
+}
+
+function buildAbout(){
+  const wrap = document.getElementById('mode-about');
+  if(wrap.dataset.built) return;
+  wrap.dataset.built = '1';
+  wrap.innerHTML = `<div style="max-width:560px;margin:0 auto;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">About</div>
+    <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Created by Ian Dominguez</h2>
+    ${helpSection('Bio','Write a short bio here — a sentence or two about who you are and why you built this app.')}
+    ${helpSection('Links',`
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none;">💜 Venmo — @IDMNGZ</a>
+        <a href="#" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;opacity:.85;">🌐 Website — add your link</a>
+        <a href="#" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;opacity:.85;">📷 Instagram / social — add your link</a>
+      </div>
+    `)}
+    ${helpSection('Support This App','If you enjoy using this app, I\'d really appreciate a donation via Venmo above — it helps me keep building and maintaining free tools like this one. 💜')}
   </div>`;
 }
 
