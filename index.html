@@ -1803,18 +1803,19 @@ function populateSelects(){
   Object.entries(SCALES).forEach(([key,s])=>{const o=document.createElement('option');o.value=key;o.textContent=s.name;if(key==='major')o.selected=true;ss.appendChild(o);});
 
   const ts=document.getElementById('tuning-select');
-  const groups={
-    'Standard':['standard','eb_standard','d_standard','c_standard'],
-    'Drop':['drop_d','drop_cs','drop_c','drop_as','drop_a'],
-    'DADGAD':['dadgad','dadgad_flat','dadgad_down'],
-    'Open':['open_g','open_d','open_e','open_a','open_c','open_dm'],
-    'Other':['double_drop_d','nst'],
-  };
-  Object.entries(groups).forEach(([gname,keys])=>{
-    const og=document.createElement('optgroup');og.label=gname;
-    keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=TUNING_LABELS[k];ts.appendChild(o);});
-    ts.appendChild(og);
-    keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=TUNING_LABELS[k];og.appendChild(o);});
+  const tuningOrder=[
+    'standard','eb_standard','d_standard','c_standard',
+    'drop_d','drop_cs','drop_c','drop_as','drop_a',
+    'dadgad','dadgad_flat','dadgad_down',
+    'open_g','open_d','open_e','open_a','open_c','open_dm',
+    'double_drop_d','nst',
+  ];
+  tuningOrder.forEach(k=>{
+    const o=document.createElement('option');
+    o.value=k;
+    o.textContent=TUNING_LABELS[k];
+    if(k==='standard')o.selected=true;
+    ts.appendChild(o);
   });
 }
 
@@ -1931,7 +1932,7 @@ function buildAbout(){
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">About</div>
     <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Created by Ian Dominguez</h2>
     ${helpSection('Bio',`
-      <img src="bio-photo.jpg" alt="Ian Dominguez" style="display:block;width:120px;height:120px;border-radius:50%;object-fit:cover;margin:0 auto 16px;border:2px solid var(--gold);" onerror="this.style.display='none'">
+      <img src="IanD_BioPic.JPG" alt="Ian Dominguez" style="display:block;width:120px;height:120px;border-radius:50%;object-fit:cover;margin:0 auto 16px;border:2px solid var(--gold);" onerror="this.style.display='none'">
       I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard)
       <br><br>
       With no formal training in Music Theory... I created this app because I was tired of guessing how music theory works.
