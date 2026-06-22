@@ -32,7 +32,7 @@ h1 span{color:var(--gold);}
 
 /* MODE TABS */
 .mode-tabs{display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
-.mode-tab{padding:8px 14px;cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--muted);border:none;background:none;transition:all .15s;white-space:nowrap;}
+.mode-tab{padding:12px 20px;cursor:pointer;font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.08em;color:var(--muted);border:none;background:none;transition:all .15s;white-space:nowrap;}
 .mode-tab.active{background:var(--gold);color:#000;font-weight:700;}
 
 /* VIEW TOGGLE */
@@ -230,7 +230,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 @media(max-width:1023px){
   .header-inner{gap:8px;}
   .mode-tabs{flex-wrap:wrap;}
-  .mode-tab{padding:7px 11px;font-size:9px;}
+  .mode-tab{padding:11px 16px;font-size:11px;}
   .chord-cards{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
   .scale-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
   .prog-degree{min-width:70px;}
@@ -243,7 +243,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .header-inner{flex-direction:column;align-items:flex-start;gap:8px;}
   .header-inner > div:last-child{width:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
   .mode-tabs{flex:1;}
-  .mode-tab{flex:1;padding:8px 6px;font-size:9px;text-align:center;}
+  .mode-tab{flex:1;padding:12px 8px;font-size:11px;text-align:center;}
   h1{font-size:20px;}
   .eyebrow{font-size:8px;}
 
@@ -278,7 +278,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 
 /* ── iPhone (up to 430px) — primary mobile target ── */
 @media(max-width:430px){
-  header{padding:10px 12px 8px;padding-top:max(10px,env(safe-area-inset-top));}
+  header{padding:10px 12px 8px;padding-top:calc(env(safe-area-inset-top) + 30px);}
   .eyebrow{display:none;}
   h1{font-size:17px;}
 
@@ -289,7 +289,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
     border-radius:8px;width:100%;
   }
   .mode-tabs::-webkit-scrollbar{display:none;}
-  .mode-tab{padding:9px 12px;font-size:9px;white-space:nowrap;flex-shrink:0;}
+  .mode-tab{padding:13px 18px;font-size:12px;white-space:nowrap;flex-shrink:0;}
 
   .view-toggle{flex-shrink:0;}
   .view-btn{padding:8px 10px;font-size:9px;}
@@ -372,9 +372,40 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .prog-numeral{font-size:13px;}
   .fn-legend{display:none;}
 }
+
+/* ── SPLASH SCREEN ── */
+#splash-screen{
+  position:fixed;inset:0;z-index:1000;
+  background:#0a0a0b;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:28px;padding:40px 24px;
+  padding-top:max(40px,env(safe-area-inset-top));
+  padding-bottom:max(40px,env(safe-area-inset-bottom));
+  transition:opacity .35s ease,visibility .35s ease;
+}
+#splash-screen.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+#splash-logo{max-width:min(82vw,360px);width:100%;height:auto;display:block;border-radius:16px;box-shadow:0 12px 50px rgba(0,0,0,.6);}
+#splash-enter-btn{
+  font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--gold);color:#000;font-weight:700;border:none;border-radius:8px;
+  padding:14px 38px;cursor:pointer;transition:transform .15s,opacity .15s;
+}
+#splash-enter-btn:active{transform:scale(.96);opacity:.85;}
+#splash-venmo-link{
+  font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.06em;
+  color:var(--muted);text-decoration:none;border:1px solid var(--border2);
+  border-radius:8px;padding:9px 18px;transition:all .15s;
+}
+#splash-venmo-link:hover,#splash-venmo-link:active{border-color:var(--gold);color:var(--gold);}
+body.splash-locked{overflow:hidden;height:100vh;}
 </style>
 </head>
-<body>
+<body class="splash-locked">
+<div id="splash-screen">
+  <img id="splash-logo" src="MV_Logo_1.png" alt="Music Visualizer logo">
+  <button id="splash-enter-btn" onclick="dismissSplash()">Enter App</button>
+  <a id="splash-venmo-link" href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener">💜 Support on Venmo</a>
+</div>
 <header>
   <div class="header-inner">
     <div>
@@ -536,6 +567,10 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 </main>
 
 <script>
+function dismissSplash(){
+  document.getElementById('splash-screen').classList.add('hidden');
+  document.body.classList.remove('splash-locked');
+}
 // ════════════════════════════════════════
 // DATA
 // ════════════════════════════════════════
