@@ -1778,6 +1778,12 @@ function showProgStep(progChords){
 }
 
 function buildProgMode(){
+  if(activeProgIdx===null){
+    const chords = getDiatonicChords(currentRoot, currentScale);
+    const firstProg = PROGRESSIONS[0].items[0];
+    const progChords = firstProg.degrees.map(d => chords[d % chords.length]);
+    selectProgStep(0, progChords, 0);
+  }
   buildProgKeyStrip();
   buildProgList();
   updateGlobalPlayButton();
@@ -1860,8 +1866,8 @@ function setMode(m){
 // ════════════════════════════════════════
 const BUG_REPORT_EMAIL = 'RogueTheoryStudio@pm.me';
 function bugReportSection(){
-  return helpSection('Found a Bug?', `Run into something broken, inaccurate, or confusing? Let me know and I'll look into it.<br>
-    <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Theory%20Visualizer%20Bug%20Report">🐛 Report a Bug</a>`);
+  return helpSection('Found a Bug?', `Run into something broken, inaccurate, or confusing? Have an idea or suggestion for the app? Let me know — bug reports and suggestions both go to the same place.<br>
+    <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Theory%20Visualizer%20Bug%20Report">🐛 Report a Bug / Suggestion</a>`);
 }
 function helpSection(title, body){
   return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;">
@@ -1922,7 +1928,7 @@ function buildAbout(){
     ${helpSection('Bio',`
       I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard)
       <br><br>
-      With no formal training in Music Theory... I created this app because I was tired of guessing how music all works together.
+      With no formal training in Music Theory... I created this app because I was tired of guessing how music theory works.
       <br><br>
       Use this app to quickly visualize the mystery of music theory, special tunings, unique scales, every chord, and how it works across music progressions.
       <br><br>
