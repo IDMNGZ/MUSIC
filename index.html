@@ -23,7 +23,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 }
 
 /* HEADER */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px 16px;padding-top:calc(env(safe-area-inset-top) + 28px);}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding-left:20px;padding-right:20px;padding-bottom:16px;padding-top:max(48px, calc(env(safe-area-inset-top) + 22px));}
 .header-inner{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
 .header-top-row{display:block;}
 .eyebrow{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:4px;}
@@ -249,7 +249,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 
 /* ── Large phone landscape / small tablet (600px–767px) ── */
 @media(max-width:767px){
-  header{padding:12px 14px 10px;}
+  header{padding-left:14px;padding-right:14px;padding-bottom:10px;}
   .mode-tab{padding:12px 8px;font-size:11px;}
   h1{font-size:20px;}
   .eyebrow{font-size:8px;}
@@ -285,7 +285,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 
 /* ── iPhone (up to 430px) — primary mobile target ── */
 @media(max-width:430px){
-  header{padding:10px 12px 8px;padding-top:calc(env(safe-area-inset-top) + 34px);}
+  header{padding-left:12px;padding-right:12px;padding-bottom:8px;padding-top:max(54px, calc(env(safe-area-inset-top) + 26px));}
   .eyebrow{display:none;}
   h1{font-size:17px;}
 
@@ -362,7 +362,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 
 /* ── Landscape phone ── */
 @media(max-width:812px) and (orientation:landscape){
-  header{padding:6px 16px;}
+  header{padding-left:16px;padding-right:16px;padding-bottom:6px;padding-top:max(10px, env(safe-area-inset-top));}
   h1{font-size:16px;}
   .eyebrow{display:none;}
   .controls{padding:6px 16px;}
@@ -410,9 +410,9 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;
   font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
   font-weight:700;border-radius:8px;padding:14px 16px;cursor:pointer;transition:transform .15s,opacity .15s;
-  background:var(--surface2);color:var(--text);border:1px solid var(--border2);text-align:center;text-decoration:none;
+  background:#e07a30;color:#fff;border:none;text-align:center;text-decoration:none;
 }
-.bug-report-btn:hover,.bug-report-btn:active{border-color:var(--gold);color:var(--gold);transform:scale(.98);}
+.bug-report-btn:hover,.bug-report-btn:active{transform:scale(.96);opacity:.85;}
 #splash-refresh-btn{
   font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;
   color:var(--muted);text-decoration:none;border:1px solid rgba(255,255,255,.2);
@@ -1888,17 +1888,25 @@ function buildInstructions(){
   wrap.dataset.built = '1';
   wrap.innerHTML = `<div style="max-width:700px;margin:0 auto;">
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">How to use</div>
-    <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Scale, Tuning & Chord Visualizer</h2>
-    ${helpSection('🎸 / 🎹 Guitar & Piano Toggle','Top-right of the header. Switches every visualiser between fretboard and keyboard across all modes. <b>Tuning</b> and <b>Fret</b> controls appear in Guitar view; <b>Octave</b> control appears in Piano view.')}
-    ${helpSection('Controls Bar (always visible at top)',`
+    <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Music Theory Visualizer</h2>
+    ${helpSection('Header Layout',`
+      <b>ABOUT / HOW TO USE / ⟳ RESYNC</b> — top row. Resync force-refreshes the app if it ever seems out of date or stuck on an old version.<br><br>
+      <b>🎸 GUITAR / 🎹 PIANO</b> — switches every visualizer between fretboard and keyboard, across all three modes.<br><br>
+      <b>SCALES / CHORDS / PROGRESSIONS</b> — the three main modes.
+    `)}
+    ${helpSection('Top Controls Bar',`
       <b>Root Note</b> — the key centre. Every scale, chord, and progression updates instantly.<br><br>
       <b>Scale</b> — 24 scales from Major and Minor to Gypsy, Arabian, Egyptian, Japanese, and more. Changes notes everywhere and the diatonic chords in Chords and Progressions modes.<br><br>
-      <b>Tuning</b> — 20 guitar tunings: Standard, E♭/D/C Standard, all Drop tunings (D through A), DADGAD and its flat/whole-step variants, Open G/D/E/A/C/Dm, Double Drop D, and New Standard. Open-string labels on the fretboard update live.<br><br>
-      <b>Frets</b> — 12, 15, or 17 frets.<br><br>
+      <b>Tuning</b> — 20 guitar tunings: Standard, E♭/D/C Standard, all Drop tunings (D through A), DADGAD and its half-/whole-step-down variants, Open G/D/E/A/C/Dm, Double Drop D, and New Standard. Open-string labels update live just below the Tuning menu (Guitar view only).
+    `)}
+    ${helpSection('Frets / Octaves Row',`
+      Sits directly above whichever fretboard or keyboard is currently on screen, in every mode.<br><br>
+      <b>Frets</b> (Guitar view) — 12, 15, or 17 frets.<br><br>
       <b>Octaves</b> (Piano view) — 1, 2, or 3 octaves of keyboard.
     `)}
     ${helpSection('SCALES Mode','Shows the selected scale across the full fretboard or keyboard. <b>Gold filled dot</b> = root note. <b>Coloured outline dots</b> = other scale tones, labelled by interval (♭3, 5, ♭7…). The info card shows the notes in your key, the interval formula, step pattern (W/H), and genres. Tap any scale in the browser grid at the bottom to switch instantly.')}
     ${helpSection('CHORDS Mode',`
+      A fretboard/keyboard at the top shows the current scale for context, the same way Scales mode does.<br><br>
       Four chord-type tabs: <b>Triads · 7th Chords · Extended · Add/Other</b>.<br><br>
       Cards are generated for every chord type on every scale degree. <b>Bright</b> = diatonic (all notes in the scale). <b>Dimmed</b> = non-diatonic (chromatic or borrowed — not wrong, just outside the key).<br><br>
       <b>Guitar view:</b> each card shows a mini fret diagram. <b>Piano view:</b> each card shows a mini one-octave keyboard preview.<br><br>
@@ -1909,17 +1917,17 @@ function buildInstructions(){
       <span style="color:#50c8a0">●</span> <b>Tonic</b> (I, iii, vi) — home &amp; rest &nbsp;|&nbsp;
       <span style="color:#8b7fe8">●</span> <b>Subdominant</b> (ii, IV) — movement &nbsp;|&nbsp;
       <span style="color:#e05a6a">●</span> <b>Dominant</b> (V, vii°) — tension<br><br>
-      <b>Tap a chord card</b> — in Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Piano view highlights chord keys brightly over dimly-lit scale keys.<br><br>
+      <b>Playback bar</b> — a global <b>▶ START / ⏹ STOP</b> button plus <b>SLOW / MED / FAST</b> speed buttons. They always control whichever progression is currently selected, even mid-playback. The first progression in the list is selected automatically when you arrive in this mode.<br><br>
       <b>Progression list</b> — 20 progressions across 5 categories (Classic Major, Classic Minor, Modal &amp; Exotic, Jazz &amp; Advanced, Blues &amp; Rock). Each row shows the Roman numerals for that key.<br><br>
-      <b>Tap any Roman numeral chip</b>, or anywhere on a progression card, to select it and jump to that chord on the neck/keys.<br><br>
-      <b>▶ START / ⏹ STOP</b> — the global playback bar above the list plays whichever progression is currently selected, auto-cycling through each chord. Use <b>SLOW / MED / FAST</b> next to it to control the step speed, even while playing.
+      <b>Tap anywhere on a progression card</b>, or any individual Roman numeral chip, to select it and jump to that chord on the neck/keys — then use the playback bar above to step through it automatically.<br><br>
+      In Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Piano view highlights chord keys brightly over dimly-lit scale keys.
     `)}
     ${helpSection('Colour System — consistent across all modes &amp; views',`
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
         ${[[0,'#f0a500','R Root'],[2,'#60b8d0','2'],[3,'#7dc85a','♭3'],[4,'#a0c860','3'],[5,'#8b7fe8','4'],[6,'#e07a30','♭5 blue note'],[7,'#50c8a0','5'],[9,'#60a8d0','6'],[10,'#e0c040','♭7'],[11,'#c07040','7'],[1,'#e05a6a','♭2'],[8,'#d060b8','♭6']].map(([,c,l])=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:50%;background:${c};display:inline-block;flex-shrink:0"></span>${l}</span>`).join('')}
       </div>
     `)}
-    ${helpSection('Save as iPhone Home Screen App','Open in <b>Safari</b> → tap the <b>Share</b> button (↑ box) → <b>"Add to Home Screen"</b>. Launches fullscreen, works fully offline. No internet needed after the first load.')}
+    ${helpSection('Save as iPhone Home Screen App','Open in <b>Safari</b> → tap the <b>Share</b> button (↑ box) → <b>"Add to Home Screen"</b>. Launches fullscreen, works fully offline. No internet needed after the first load. If the app ever seems stuck on an old version after an update, tap <b>⟳ RESYNC</b> in the header.')}
     ${bugReportSection()}
   </div>`;
 }
@@ -1950,8 +1958,10 @@ function buildAbout(){
       </div>
     `)}
     ${helpSection('Support This App',`
-      <div>If you enjoy using this app, I'd really appreciate a donation — it helps me keep building and maintaining free tools like this one. 💜</div>
-      <a href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener" class="about-venmo-btn">💜 Donate on Venmo</a>
+      If you enjoy using this app, I would really appreciate a donation on Venmo.<br><br>
+      All donations will help to support my studio endeavors, and allows me to design, build, and maintain cool apps like this one.<br><br>
+      Thank you very much.<br>
+      <a href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener" class="about-venmo-btn">💜 DONATE</a>
     `)}
     ${bugReportSection()}
   </div>`;
