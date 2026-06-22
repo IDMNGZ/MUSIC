@@ -58,6 +58,8 @@ select:focus{border-color:var(--gold);}
 .toggle-row{display:flex;gap:6px;}
 .tog-btn{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);opacity:.65;font-family:'Space Mono',monospace;font-weight:700;font-size:13px;padding:14px 8px;cursor:pointer;transition:all .15s;line-height:1;text-align:center;}
 .tog-btn.active{background:var(--gold);border-color:var(--gold);color:#000;opacity:1;font-weight:700;}
+.prog-play-toggle{flex:1.8;padding:18px 8px;font-size:15px;border:2px solid #50c8a0;color:#50c8a0;opacity:1;background:rgba(80,200,160,.08);}
+.prog-play-toggle.active{background:var(--gold);border-color:var(--gold);color:#000;}
 .tuning-badge{font-family:'Space Mono',monospace;font-size:10px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.3);border-radius:5px;color:var(--gold);padding:4px 8px;letter-spacing:.05em;white-space:nowrap;width:100%;box-sizing:border-box;text-align:center;}
 
 /* MAIN */
@@ -468,6 +470,12 @@ body.splash-locked{overflow:hidden;height:100vh;}
       <select id="tuning-select"></select>
       <div id="tuning-badge-wrap"></div>
     </div>
+  </div>
+</div>
+
+<main>
+  <!-- Frets / Octaves row — relocated by JS directly above the active visualizer per mode -->
+  <div id="frets-octaves-row" style="display:flex;gap:10px;margin-bottom:14px;">
     <div class="ctrl-group" id="frets-group">
       <div class="ctrl-label">Frets</div>
       <div class="toggle-row">
@@ -485,9 +493,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
       </div>
     </div>
   </div>
-</div>
 
-<main>
   <!-- SCALE MODE -->
   <div id="mode-scale">
     <div id="guitar-view-scale">
@@ -511,7 +517,22 @@ body.splash-locked{overflow:hidden;height:100vh;}
 
   <!-- CHORD MODE -->
   <div id="mode-chord" style="display:none">
-    <div class="chord-section">
+    <!-- Scale context visualizer -->
+    <div id="chord-mode-viz">
+      <div id="guitar-view-chord">
+        <div class="viz-wrap">
+          <svg id="chord-mode-fretboard-svg" viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+      <div id="piano-view-chord" style="display:none">
+        <div class="piano-wrap">
+          <div class="piano-sub-label">Scale tones across the keyboard</div>
+          <div class="piano-scroll"><svg id="chord-mode-piano-svg" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg"></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chord-section" style="margin-top:18px;">
       <div class="section-header" id="chord-section-title">Diatonic Chords</div>
       <div class="chord-type-tabs" id="chord-type-tabs"></div>
       <div class="chord-cards" id="chord-cards"></div>
@@ -566,10 +587,10 @@ body.splash-locked{overflow:hidden;height:100vh;}
     <div class="prog-key-strip" id="prog-key-strip"></div>
 
     <!-- Global playback controls (applies to whichever progression is selected) -->
-    <div class="ctrl-group" style="max-width:480px;margin:14px 0 4px;">
+    <div class="ctrl-group" style="margin:14px 0 4px;">
       <div class="ctrl-label">Playback — tap a progression below, then Start</div>
       <div class="toggle-row" id="prog-playback-row">
-        <button class="tog-btn" id="prog-global-play-btn" style="flex:1.6;" onclick="toggleGlobalProgPlayback()">▶ START</button>
+        <button class="tog-btn prog-play-toggle" id="prog-global-play-btn" onclick="toggleGlobalProgPlayback()">▶ START</button>
         <button class="tog-btn" data-speed="2400">SLOW</button>
         <button class="tog-btn active" data-speed="1600">MED</button>
         <button class="tog-btn" data-speed="900">FAST</button>
@@ -1759,6 +1780,8 @@ function buildProgMode(){
   buildProgKeyStrip();
   buildProgList();
   updateGlobalPlayButton();
+  document.getElementById('prog-guitar-viz').style.display = currentView==='guitar' ? '' : 'none';
+  document.getElementById('prog-piano-viz').style.display = currentView==='piano' ? '' : 'none';
 }
 
 // ════════════════════════════════════════
@@ -1834,7 +1857,7 @@ function setMode(m){
 // ════════════════════════════════════════
 // INSTRUCTIONS
 // ════════════════════════════════════════
-const BUG_REPORT_EMAIL = 'bugs@iandominguez.com';
+const BUG_REPORT_EMAIL = 'RogueTheoryStudio@pm.me';
 function bugReportSection(){
   return helpSection('Found a Bug?', `Run into something broken, inaccurate, or confusing? Let me know and I'll look into it.<br>
     <a class="bug-report-btn" href="mailto:${BUG_REPORT_EMAIL}?subject=Music%20Theory%20Visualizer%20Bug%20Report">🐛 Report a Bug</a>`);
@@ -1930,6 +1953,7 @@ function updateTuningBadge(){
 // ════════════════════════════════════════
 function render(){
   const openStrings=TUNINGS[currentTuning];
+  relocateFretsOctavesRow();
 
   if(currentMode==='scale'){
     const scaleSet=getScaleSet(currentRoot,currentScale);
@@ -1953,6 +1977,20 @@ function render(){
   }
 
   if(currentMode==='chord'){
+    const scaleSet=getScaleSet(currentRoot,currentScale);
+    const ivMap={};
+    SCALES[currentScale].intervals.forEach(iv=>{ivMap[(currentRoot+iv)%12]=iv;});
+
+    if(currentView==='guitar'){
+      document.getElementById('guitar-view-chord').style.display='';
+      document.getElementById('piano-view-chord').style.display='none';
+      drawFretboard('chord-mode-fretboard-svg',scaleSet,ivMap,openStrings,numFrets);
+    } else {
+      document.getElementById('guitar-view-chord').style.display='none';
+      document.getElementById('piano-view-chord').style.display='';
+      drawPiano('chord-mode-piano-svg',scaleSet,ivMap,numOctaves,840,180);
+    }
+
     buildChordTypeTabs();
     buildChordCards();
   }
@@ -1962,6 +2000,18 @@ function render(){
   }
 
   updateTuningBadge();
+}
+
+function relocateFretsOctavesRow(){
+  const row = document.getElementById('frets-octaves-row');
+  if(!row) return;
+  let anchor = null;
+  if(currentMode==='scale') anchor = document.getElementById('guitar-view-scale');
+  else if(currentMode==='chord') anchor = document.getElementById('chord-mode-viz');
+  else if(currentMode==='prog') anchor = document.getElementById('prog-guitar-viz');
+  if(anchor && anchor.parentNode && row.nextSibling !== anchor){
+    anchor.parentNode.insertBefore(row, anchor);
+  }
 }
 
 // ════════════════════════════════════════
