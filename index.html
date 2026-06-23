@@ -431,6 +431,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
     <a id="splash-venmo-link" href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener">💜 Venmo</a>
   </div>
   <button id="splash-refresh-btn" onclick="forceRefresh()">⟳ Refresh / Resync</button>
+  <div id="splash-version-footer" style="position:relative;z-index:1;font-family:'Space Mono',monospace;font-size:9px;color:rgba(255,255,255,.45);text-align:center;letter-spacing:.04em;line-height:1.6;"></div>
 </div>
 <header>
   <div class="header-inner">
@@ -443,12 +444,14 @@ body.splash-locked{overflow:hidden;height:100vh;}
       <button class="secondary-btn" onclick="setMode('about')">ABOUT</button>
       <button class="secondary-btn" onclick="setMode('help')">HOW TO USE</button>
       <button class="secondary-btn" id="btn-share" onclick="shareApp()" title="Share this app">📤 SHARE</button>
+      <button class="secondary-btn" id="btn-sound" onclick="toggleAudio()" title="Mute / unmute note and chord sound">🔊 SOUND</button>
       <button class="secondary-btn" id="btn-resync" onclick="forceRefresh()" title="Refresh / Resync the app">⟳ RESYNC</button>
     </div>
     <div class="header-divider"></div>
     <div class="view-toggle">
       <button class="view-btn active" id="btn-guitar" onclick="setView('guitar')">🎸 GUITAR</button>
-      <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 PIANO</button>
+      <button class="view-btn" id="btn-piano" onclick="setView('piano')">🎹 KEYBOARD</button>
+      <button class="view-btn" id="btn-circle" onclick="setView('circle')">⭕ CIRCLE</button>
     </div>
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="setMode('scale')">SCALES</button>
@@ -510,6 +513,11 @@ body.splash-locked{overflow:hidden;height:100vh;}
         <div class="piano-scroll"><svg id="piano-svg-scale" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg"></svg></div>
       </div>
     </div>
+    <div id="circle-view-scale" style="display:none">
+      <div class="viz-wrap" style="display:flex;justify-content:center;">
+        <svg id="circle-svg-scale" viewBox="0 0 360 360" style="width:100%;max-width:380px;height:auto;display:block;margin:0 auto;"></svg>
+      </div>
+    </div>
     <div class="legend" id="legend"></div>
     <div class="scale-info" id="scale-info"></div>
     <div class="scale-browser" style="margin-top:24px;">
@@ -533,6 +541,11 @@ body.splash-locked{overflow:hidden;height:100vh;}
           <div class="piano-scroll"><svg id="chord-mode-piano-svg" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg"></svg></div>
         </div>
       </div>
+      <div id="circle-view-chord" style="display:none">
+        <div class="viz-wrap" style="display:flex;justify-content:center;">
+          <svg id="chord-mode-circle-svg" viewBox="0 0 360 360" style="width:100%;max-width:380px;height:auto;display:block;margin:0 auto;"></svg>
+        </div>
+      </div>
     </div>
 
     <div class="chord-section" style="margin-top:18px;">
@@ -554,23 +567,6 @@ body.splash-locked{overflow:hidden;height:100vh;}
           <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
             <svg id="piano-svg-chord" viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="min-width:400px;width:100%;height:auto;display:block;"></svg>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chord fretboard (guitar view) -->
-    <div id="chord-fretboard-wrap" style="display:none;margin-top:16px;">
-      <div class="viz-wrap">
-        <svg id="chord-fretboard-svg" viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg"></svg>
-      </div>
-    </div>
-
-    <!-- Full chord piano (piano view) -->
-    <div id="chord-full-piano-wrap" style="display:none;margin-top:16px;">
-      <div class="piano-wrap">
-        <div class="piano-sub-label">Chord across the keyboard</div>
-        <div class="piano-scroll">
-          <svg id="chord-full-piano-svg" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg" style="min-width:560px;width:100%;height:auto;display:block;"></svg>
         </div>
       </div>
     </div>
@@ -616,6 +612,11 @@ body.splash-locked{overflow:hidden;height:100vh;}
       <div id="prog-piano-viz" style="display:none">
         <div class="piano-wrap">
           <div class="piano-scroll"><svg id="prog-piano-svg" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg" style="min-width:560px;width:100%;height:auto;display:block;"></svg></div>
+        </div>
+      </div>
+      <div id="prog-circle-viz" style="display:none">
+        <div class="viz-wrap" style="display:flex;justify-content:center;">
+          <svg id="prog-circle-svg" viewBox="0 0 400 400" style="width:100%;max-width:380px;height:auto;display:block;margin:0 auto;"></svg>
         </div>
       </div>
     </div>
@@ -806,6 +807,212 @@ function getScaleSet(r,sk){return new Set(SCALES[sk].intervals.map(i=>(r+i)%12))
 function getIv(np,r,ivs){const d=((np-r)+12)%12;return ivs.includes(d)?d:null;}
 
 // ════════════════════════════════════════
+// AUDIO ENGINE
+// ════════════════════════════════════════
+let audioCtx=null;
+let audioEnabled=true;
+let suppressChordSound=false;
+let masterCompressor=null;
+let masterGain=null;
+let reverbNode=null;
+let reverbWetGain=null;
+let dryGain=null;
+function createReverbImpulse(ctx,duration,decay){
+  const rate=ctx.sampleRate;
+  const length=Math.floor(rate*duration);
+  const impulse=ctx.createBuffer(2,length,rate);
+  for(let ch=0;ch<2;ch++){
+    const data=impulse.getChannelData(ch);
+    for(let i=0;i<length;i++){
+      data[i]=(Math.random()*2-1)*Math.pow(1-i/length,decay);
+    }
+  }
+  return impulse;
+}
+function getAudioCtx(){
+  if(!audioCtx){
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return null;
+    audioCtx=new AC();
+    masterCompressor=audioCtx.createDynamicsCompressor();
+    masterCompressor.threshold.value=-18;
+    masterCompressor.knee.value=14;
+    masterCompressor.ratio.value=4;
+    masterCompressor.attack.value=0.002;
+    masterCompressor.release.value=0.28;
+    masterGain=audioCtx.createGain();
+    masterGain.gain.value=1.0;
+
+    dryGain=audioCtx.createGain();
+    dryGain.gain.value=0.8;
+    reverbNode=audioCtx.createConvolver();
+    reverbNode.buffer=createReverbImpulse(audioCtx,1.1,3.4);
+    reverbWetGain=audioCtx.createGain();
+    reverbWetGain.gain.value=0.25;
+
+    masterCompressor.connect(dryGain);
+    masterCompressor.connect(reverbNode);
+    reverbNode.connect(reverbWetGain);
+    dryGain.connect(masterGain);
+    reverbWetGain.connect(masterGain);
+    masterGain.connect(audioCtx.destination);
+  }
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function midiToFreq(midi){
+  return 440*Math.pow(2,(midi-69)/12);
+}
+let fuzzCurve=null;
+function getFuzzCurve(){
+  if(!fuzzCurve){
+    const k=4,n=44100;
+    fuzzCurve=new Float32Array(n);
+    for(let i=0;i<n;i++){
+      const x=i*2/n-1;
+      fuzzCurve[i]=(1+k)*x/(1+k*Math.abs(x));
+    }
+  }
+  return fuzzCurve;
+}
+// Short noise burst at note onset — a pick scratch for guitar, a hammer
+// thud for piano — layered under the tonal harmonics for a more percussive,
+// less organ-like attack.
+function playAttackNoise(ctx,t0,timbre,gainScale){
+  const dur=0.028;
+  const bufferSize=Math.floor(ctx.sampleRate*dur);
+  const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
+  const data=buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++){
+    data[i]=(Math.random()*2-1)*Math.pow(1-i/bufferSize,3.5);
+  }
+  const noise=ctx.createBufferSource();
+  noise.buffer=buffer;
+  const filter=ctx.createBiquadFilter();
+  filter.type=timbre==='piano'?'bandpass':'highpass';
+  filter.frequency.value=timbre==='piano'?1100:3800;
+  filter.Q.value=timbre==='piano'?0.35:0.5;
+  const gain=ctx.createGain();
+  gain.gain.value=(timbre==='piano'?0.035:0.055)*gainScale;
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(masterCompressor);
+  noise.start(t0);
+  noise.stop(t0+dur);
+}
+function pianoInharmonicityCoeff(midi){
+  if(midi<48) return 0.0012;
+  if(midi<=72) return 0.0004;
+  return 0.0009;
+}
+// Additive-harmonic synth: stacks several sine partials through a filter that
+// sweeps from bright to dark, approximating a plucked string (guitar) or
+// struck hammer (piano) rather than a single flat oscillator tone.
+function playNote(midi,duration,delay=0,gainScale=1,timbre){
+  if(!audioEnabled)return;
+  const ctx=getAudioCtx();
+  if(!ctx)return;
+  timbre = timbre || (currentView==='piano' ? 'piano' : 'guitar');
+  duration = duration || 1.6;
+  const t0=ctx.currentTime+delay;
+  const freq=midiToFreq(midi);
+
+  const noteGain=ctx.createGain();
+  noteGain.connect(masterCompressor);
+
+  const filter=ctx.createBiquadFilter();
+  filter.type='lowpass';
+  filter.Q.value=2.0;
+
+  const bassBoost=ctx.createBiquadFilter();
+  bassBoost.type='lowshelf';
+  bassBoost.frequency.value=220;
+  bassBoost.gain.value=7;
+
+  if(timbre==='guitar'){
+    const fuzz=ctx.createWaveShaper();
+    fuzz.curve=getFuzzCurve();
+    fuzz.oversample='2x';
+    filter.connect(fuzz);
+    fuzz.connect(bassBoost);
+  } else {
+    filter.connect(bassBoost);
+  }
+  bassBoost.connect(noteGain);
+
+  const harmonics=[[0.25,0.08],[0.5,0.20],[1,1.0],[2,0.4]];
+
+  // Vibrato: a slow pitch wobble that eases in after the attack, shared
+  // across all harmonics of this note via detune modulation.
+  const vibratoLFO=ctx.createOscillator();
+  vibratoLFO.type='sine';
+  vibratoLFO.frequency.value=5.0;
+  const vibratoDepth=ctx.createGain();
+  vibratoDepth.gain.setValueAtTime(0,t0);
+  vibratoDepth.gain.linearRampToValueAtTime(4,t0+0.3);
+  vibratoLFO.connect(vibratoDepth);
+  vibratoLFO.start(t0);
+  vibratoLFO.stop(t0+duration+0.1);
+
+  const baseLevel=0.4*gainScale;
+  harmonics.forEach(([mult,amp])=>{
+    // Two slightly detuned voices per harmonic = chorus/unison-string realism,
+    // plus a touch of per-note randomization so repeats don't sound identical.
+    [-1,1].forEach(sign=>{
+      const osc=ctx.createOscillator();
+      osc.type='sine';
+      osc.frequency.value=freq*mult;
+      const randCents=(Math.random()*2-1)*0.8;
+      const chorusCents=sign*2.8+randCents;
+      // Slight pitch sag right after the pluck as string tension settles.
+      osc.detune.setValueAtTime(chorusCents-42,t0);
+      osc.detune.linearRampToValueAtTime(chorusCents,t0+0.028);
+      vibratoDepth.connect(osc.detune);
+      const hGain=ctx.createGain();
+      hGain.gain.value=amp*baseLevel*0.5;
+      osc.connect(hGain);
+      hGain.connect(filter);
+      const randStart=t0+Math.random()*0.002;
+      osc.start(randStart);
+      osc.stop(t0+duration+0.1);
+    });
+  });
+
+  // Soften the attack specifically in the mid register (around MIDI 64 / E4)
+  // where a fast attack reads as an obvious "pluck" snap.
+  const midFalloff=Math.max(0,1-Math.abs(midi-64)/24);
+  const midRangeExtra=midFalloff*0.035;
+
+  const attackTime=timbre==='piano'?0.045:0.01;
+  filter.frequency.setValueAtTime(650,t0);
+  filter.frequency.exponentialRampToValueAtTime(200,t0+duration);
+  noteGain.gain.setValueAtTime(0.0001,t0);
+  noteGain.gain.linearRampToValueAtTime(1,t0+attackTime+midRangeExtra);
+  noteGain.gain.setValueAtTime(1,t0+attackTime+0.025+midRangeExtra);
+  noteGain.gain.exponentialRampToValueAtTime(0.0001,t0+duration);
+}
+function playChord(midiArray,duration,timbre){
+  if(!audioEnabled)return;
+  const scale=1/Math.sqrt(Math.max(midiArray.length,1))*1.3;
+  midiArray.forEach((m,i)=>playNote(m,duration,i*0.02,scale,timbre));
+}
+function chordPcsToMidi(chordPcs,rootPc,baseMidi=60){
+  let prev=baseMidi+pc(rootPc)-12;
+  return chordPcs.map(p=>{
+    let m=baseMidi+pc(p);
+    while(m<=prev)m+=12;
+    prev=m;
+    return m;
+  });
+}
+function toggleAudio(){
+  audioEnabled=!audioEnabled;
+  const btn=document.getElementById('btn-sound');
+  if(btn)btn.textContent=audioEnabled?'🔊 SOUND':'🔇 SOUND';
+  if(audioEnabled)getAudioCtx();
+}
+
+// ════════════════════════════════════════
 // SVG HELPERS
 // ════════════════════════════════════════
 function svgEl(tag,attrs,text){
@@ -866,11 +1073,14 @@ function drawFretboard(svgId, highlightSet, intervalMap, openStrings, N, showOct
       const isRoot=iv===0;
       const x=f===0?NX:(fXs[f-1]+fXs[f])/2;
       const r=isRoot?12:10;
-      svg.appendChild(svgEl('circle',{cx:x+1,cy:y+1,r,fill:'rgba(0,0,0,0.5)'}));
-      if(isRoot)svg.appendChild(svgEl('circle',{cx:x,cy:y,r:r+1.5,fill:'none',stroke:color,'stroke-width':2}));
-      svg.appendChild(svgEl('circle',{cx:x,cy:y,r,fill:isRoot?color:color+'28',stroke:color,'stroke-width':isRoot?0:1.5}));
+      const g=svgEl('g',{style:'cursor:pointer'});
+      g.appendChild(svgEl('circle',{cx:x+1,cy:y+1,r,fill:'rgba(0,0,0,0.5)'}));
+      if(isRoot)g.appendChild(svgEl('circle',{cx:x,cy:y,r:r+1.5,fill:'none',stroke:color,'stroke-width':2}));
+      g.appendChild(svgEl('circle',{cx:x,cy:y,r,fill:isRoot?color:color+'28',stroke:color,'stroke-width':isRoot?0:1.5}));
       const lbl=isRoot?NOTE_NAMES[notePc]:INTERVAL_LABELS[iv!==null?iv:0];
-      svg.appendChild(svgEl('text',{x,y:y+4,'font-size':isRoot?9:8,fill:isRoot?'#000':color,'font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+      g.appendChild(svgEl('text',{x,y:y+4,'font-size':isRoot?9:8,fill:isRoot?'#000':color,'font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+      g.addEventListener('click',()=>playNote(openStrings[s]+f));
+      svg.appendChild(g);
     }
   }
 }
@@ -958,7 +1168,9 @@ function drawPiano(svgId,highlightSet,intervalMap,octaves,viewW,viewH){
       let fill='#e8e4dc';
       if(isRoot)fill=INTERVAL_COLORS[0];
       else if(inSet&&color)fill=color+'88';
-      svg.appendChild(svgEl('rect',{x:x+0.5,y:0,width:whiteW-1,height:whiteH,fill,rx:3,ry:3,stroke:'#1a1a1e','stroke-width':0.5}));
+      const whiteKey=svgEl('rect',{x:x+0.5,y:0,width:whiteW-1,height:whiteH,fill,rx:3,ry:3,stroke:'#1a1a1e','stroke-width':0.5,style:'cursor:pointer'});
+      whiteKey.addEventListener('click',()=>playNote(startMidi+oct*12+semi));
+      svg.appendChild(whiteKey);
       if(inSet){
         const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv!==null?iv:0];
         svg.appendChild(svgEl('text',{x:x+whiteW/2,y:whiteH-10,'font-size':9,fill:'#000a','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
@@ -977,7 +1189,9 @@ function drawPiano(svgId,highlightSet,intervalMap,octaves,viewW,viewH){
       let fill='#1a1a1e';
       if(isRoot)fill=INTERVAL_COLORS[0];
       else if(inSet&&color)fill=color;
-      svg.appendChild(svgEl('rect',{x,y:0,width:blackW,height:blackH,fill,rx:2,ry:2}));
+      const blackKey=svgEl('rect',{x,y:0,width:blackW,height:blackH,fill,rx:2,ry:2,style:'cursor:pointer'});
+      blackKey.addEventListener('click',()=>playNote(startMidi+oct*12+semi));
+      svg.appendChild(blackKey);
       if(inSet){
         const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv!==null?iv:0];
         svg.appendChild(svgEl('text',{x:x+blackW/2,y:blackH-8,'font-size':8,fill:isRoot?'#000':'#fff','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
@@ -1139,12 +1353,48 @@ function buildChordCards(){
     `${CHORD_TYPES[currentChordType].label} in ${NOTE_NAMES[currentRoot]} ${SCALES[currentScale].name}`;
 }
 
+// Top scale-context visualizer in Chords mode: shows the active scale, and
+// if a chord card is selected, overlays that chord on top of it — this
+// replaces the old duplicate full-size diagrams that used to live below.
+function updateChordModeViz(){
+  const openStrings=TUNINGS[currentTuning];
+  const scaleSet=getScaleSet(currentRoot,currentScale);
+  const ivMap={};
+  SCALES[currentScale].intervals.forEach(iv=>{ivMap[(currentRoot+iv)%12]=iv;});
+  const sel=window._selectedChordViz;
+
+  document.getElementById('guitar-view-chord').style.display=currentView==='guitar'?'':'none';
+  document.getElementById('piano-view-chord').style.display=currentView==='piano'?'':'none';
+  document.getElementById('circle-view-chord').style.display=currentView==='circle'?'':'none';
+
+  if(currentView==='guitar'){
+    if(sel){
+      drawFretboardWithChord('chord-mode-fretboard-svg',scaleSet,ivMap,new Set(sel.chordPcs),sel.ivMap,sel.rootPc,openStrings,numFrets);
+    } else {
+      drawFretboard('chord-mode-fretboard-svg',scaleSet,ivMap,openStrings,numFrets);
+    }
+  } else if(currentView==='piano'){
+    if(sel){
+      drawPianoWithChord('chord-mode-piano-svg',scaleSet,ivMap,new Set(sel.chordPcs),sel.ivMap,numOctaves,840,180);
+    } else {
+      drawPiano('chord-mode-piano-svg',scaleSet,ivMap,numOctaves,840,180);
+    }
+  } else {
+    if(sel){
+      drawCircleWithChord('chord-mode-circle-svg',scaleSet,ivMap,sel.chordPcs,sel.ivMap);
+    } else {
+      drawCircleOfFifths('chord-mode-circle-svg',scaleSet,ivMap);
+    }
+  }
+}
 function selectChord(key,di,rootPc,chordPcs,shape,label){
   selectedChord=key+'_'+di;
+  if(!suppressChordSound) playChord(chordPcsToMidi(chordPcs,rootPc));
 
   // interval map for chord
   const ivMap={};
   chordPcs.forEach((p,i)=>{ivMap[p]=shape.intervals[i]??0;});
+  window._selectedChordViz={chordPcs,rootPc,ivMap};
 
   const detail=document.getElementById('chord-detail');
   detail.className='chord-detail visible';
@@ -1179,28 +1429,11 @@ function selectChord(key,di,rootPc,chordPcs,shape,label){
   pianoWrap.style.display='block';
   drawPiano('piano-svg-chord',chordSet,ivMap,2,600,140);
 
-  // Full fretboard: show in guitar view, hide in piano view
-  const fbWrap=document.getElementById('chord-fretboard-wrap');
-  if(currentView==='guitar'){
-    fbWrap.style.display='block';
-    const openStrings=TUNINGS[currentTuning];
-    drawFretboard('chord-fretboard-svg',chordSet,ivMap,openStrings,numFrets);
-  } else {
-    fbWrap.style.display='none';
-  }
-
-  // Full piano: show in piano view below detail
-  const fullPianoWrap=document.getElementById('chord-full-piano-wrap');
-  if(currentView==='piano'){
-    fullPianoWrap.style.display='block';
-    drawPiano('chord-full-piano-svg',chordSet,ivMap,numOctaves,840,180);
-  } else {
-    fullPianoWrap.style.display='none';
-  }
+  // Top scale-context visualizer now highlights this chord over the scale
+  updateChordModeViz();
 
   // re-render cards to show active
   buildChordCards();
-  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 // ════════════════════════════════════════
@@ -1216,9 +1449,9 @@ function buildChordTypeTabs(){
     btn.addEventListener('click',()=>{
       currentChordType=key;
       selectedChord=null;
+      window._selectedChordViz=null;
       document.getElementById('chord-detail').className='chord-detail';
-      document.getElementById('chord-fretboard-wrap').style.display='none';
-      document.getElementById('chord-full-piano-wrap').style.display='none';
+      updateChordModeViz();
       buildChordTypeTabs();
       buildChordCards();
     });
@@ -1361,12 +1594,15 @@ function drawFretboardWithChord(svgId, scaleSet, scaleIvMap, chordSet, chordIvMa
       const isRoot=notePc===chordRootPc;
       const x=f===0?NX:(fXs[f-1]+fXs[f])/2;
       const r=isRoot?13:11;
-      svg.appendChild(svgEl('circle',{cx:x+1,cy:y+1,r,fill:'rgba(0,0,0,0.5)'}));
-      if(isRoot) svg.appendChild(svgEl('circle',{cx:x,cy:y,r:r+2,fill:'none',stroke:color,'stroke-width':2}));
-      svg.appendChild(svgEl('circle',{cx:x,cy:y,r,fill:isRoot?color:color+'55',stroke:color,'stroke-width':isRoot?0:2}));
+      const g=svgEl('g',{style:'cursor:pointer'});
+      g.appendChild(svgEl('circle',{cx:x+1,cy:y+1,r,fill:'rgba(0,0,0,0.5)'}));
+      if(isRoot) g.appendChild(svgEl('circle',{cx:x,cy:y,r:r+2,fill:'none',stroke:color,'stroke-width':2}));
+      g.appendChild(svgEl('circle',{cx:x,cy:y,r,fill:isRoot?color:color+'55',stroke:color,'stroke-width':isRoot?0:2}));
       const lbl=isRoot?NOTE_NAMES[notePc]:INTERVAL_LABELS[iv];
-      svg.appendChild(svgEl('text',{x,y:y+4,'font-size':isRoot?9:8,fill:isRoot?'#000':color,
+      g.appendChild(svgEl('text',{x,y:y+4,'font-size':isRoot?9:8,fill:isRoot?'#000':color,
         'font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
+      g.addEventListener('click',()=>playNote(openStrings[s]+f));
+      svg.appendChild(g);
     }
   }
 }
@@ -1396,8 +1632,9 @@ function drawPianoWithChord(svgId, scaleSet, scaleIvMap, chordSet, chordIvMap, o
       let fill='#e8e4dc';
       if(isRoot) fill=INTERVAL_COLORS[0];
       else if(inChord&&color) fill=color+'cc';
-      else if(inScale) fill='#2e2e38';
-      svg.appendChild(svgEl('rect',{x:x+0.5,y:0,width:whiteW-1,height:whiteH,fill,rx:3,ry:3,stroke:'#1a1a1e','stroke-width':0.5}));
+      const whiteKey=svgEl('rect',{x:x+0.5,y:0,width:whiteW-1,height:whiteH,fill,rx:3,ry:3,stroke:'#1a1a1e','stroke-width':0.5,style:'cursor:pointer'});
+      whiteKey.addEventListener('click',()=>playNote(startMidi+oct*12+whitePattern[wi]));
+      svg.appendChild(whiteKey);
       if(inChord){
         const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv??0];
         svg.appendChild(svgEl('text',{x:x+whiteW/2,y:whiteH-10,'font-size':9,fill:'#000a','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
@@ -1416,13 +1653,142 @@ function drawPianoWithChord(svgId, scaleSet, scaleIvMap, chordSet, chordIvMap, o
       let fill='#1a1a1e';
       if(isRoot) fill=INTERVAL_COLORS[0];
       else if(inChord&&color) fill=color;
-      else if(inScale) fill='#252530';
-      svg.appendChild(svgEl('rect',{x,y:0,width:blackW,height:blackH,fill,rx:2,ry:2}));
+      const blackKey=svgEl('rect',{x,y:0,width:blackW,height:blackH,fill,rx:2,ry:2,style:'cursor:pointer'});
+      blackKey.addEventListener('click',()=>playNote(startMidi+oct*12+blackSemi[bi]));
+      svg.appendChild(blackKey);
       if(inChord){
         const lbl=isRoot?NOTE_NAMES[mpc]:INTERVAL_LABELS[iv??0];
         svg.appendChild(svgEl('text',{x:x+blackW/2,y:blackH-8,'font-size':8,fill:isRoot?'#000':'#fff','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
       }
     }
+  }
+}
+
+// ════════════════════════════════════════
+// CIRCLE OF FIFTHS
+// ════════════════════════════════════════
+// Position around the circle (0 = top/12 o'clock, clockwise) for a given
+// pitch class. 7 is self-inverse mod 12, so multiplying by 7 both builds
+// the fifths-order sequence and inverts it back to a position index.
+function fifthsPos(p){ return (p*7)%12; }
+function circleNoteXY(posIdx,R,cx,cy){
+  const angle=-Math.PI/2+posIdx*(Math.PI*2/12);
+  return [cx+R*Math.cos(angle), cy+R*Math.sin(angle)];
+}
+function drawCircleOfFifths(svgId, highlightSet, intervalMap){
+  const svg=document.getElementById(svgId);
+  svg.innerHTML='';
+  const W=360,H=360,cx=W/2,cy=H/2,R=140,nodeR=24;
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'#0d0d0e'}));
+  svg.appendChild(svgEl('circle',{cx,cy,r:R,fill:'none',stroke:'#2a2a30','stroke-width':1}));
+  for(let i=0;i<12;i++){
+    const p=(i*7)%12;
+    const [x,y]=circleNoteXY(i,R,cx,cy);
+    const inSet=highlightSet.has(p);
+    const iv=intervalMap?intervalMap[p]:null;
+    const isRoot=iv===0;
+    const color=iv!==null?INTERVAL_COLORS[iv]:null;
+    let fill='#1a1a1e',stroke='#3a3a40',textColor='#5a5a58';
+    if(isRoot){fill=INTERVAL_COLORS[0];stroke=INTERVAL_COLORS[0];textColor='#000';}
+    else if(inSet&&color){fill=color+'cc';stroke=color;textColor='#000';}
+    const g=svgEl('g',{style:'cursor:pointer'});
+    g.appendChild(svgEl('circle',{cx:x,cy:y,r:nodeR,fill,stroke,'stroke-width':1.5}));
+    g.appendChild(svgEl('text',{x,y:y+4,'font-size':13,'font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle',fill:textColor},NOTE_NAMES[p]));
+    g.addEventListener('click',()=>playNote(60+p));
+    svg.appendChild(g);
+  }
+}
+function drawCircleWithChord(svgId, scaleSet, scaleIvMap, chordPcs, chordIvMap){
+  const svg=document.getElementById(svgId);
+  svg.innerHTML='';
+  const W=360,H=360,cx=W/2,cy=H/2,R=140,nodeR=24;
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'#0d0d0e'}));
+  svg.appendChild(svgEl('circle',{cx,cy,r:R,fill:'none',stroke:'#2a2a30','stroke-width':1}));
+
+  const chordSet=new Set(chordPcs);
+  if(chordPcs.length>=2){
+    const pts=chordPcs.map(p=>circleNoteXY(fifthsPos(p),R,cx,cy));
+    const pathD=pts.map((pt,i)=>`${i===0?'M':'L'}${pt[0]},${pt[1]}`).join(' ')+' Z';
+    svg.appendChild(svgEl('path',{d:pathD,fill:'none',stroke:'var(--gold)','stroke-width':1.5,'stroke-opacity':0.5}));
+  }
+
+  for(let i=0;i<12;i++){
+    const p=(i*7)%12;
+    const [x,y]=circleNoteXY(i,R,cx,cy);
+    const inChord=chordSet.has(p);
+    const inScale=scaleSet.has(p)&&!inChord;
+    const iv=chordIvMap[p];
+    const isRoot=iv===0&&inChord;
+    const color=iv!==undefined?INTERVAL_COLORS[iv]:null;
+    let fill='#1a1a1e',stroke='#3a3a40',textColor='#5a5a58',r=nodeR*0.78;
+    if(isRoot){fill=INTERVAL_COLORS[0];stroke=INTERVAL_COLORS[0];textColor='#000';r=nodeR;}
+    else if(inChord&&color){fill=color+'cc';stroke=color;textColor='#000';r=nodeR;}
+    else if(inScale){fill='#2a2a30';stroke='#4a4a50';textColor='#999';}
+    const g=svgEl('g',{style:'cursor:pointer'});
+    g.appendChild(svgEl('circle',{cx:x,cy:y,r,fill,stroke,'stroke-width':1.5}));
+    g.appendChild(svgEl('text',{x,y:y+4,'font-size':inChord?13:11,'font-family':'Space Mono, monospace','font-weight':inChord?700:400,'text-anchor':'middle',fill:textColor},NOTE_NAMES[p]));
+    g.addEventListener('click',()=>playNote(60+p));
+    svg.appendChild(g);
+  }
+}
+// Progressions circle: draws the whole progression's path around the circle
+// (traveled segments bright gold, upcoming dim/dashed), step-order badges at
+// each chord's root, then overlays the currently active chord's tones/shape.
+function drawProgCircle(svgId, scaleSet, scaleIvMap, chordPcs, chordIvMap){
+  const svg=document.getElementById(svgId);
+  svg.innerHTML='';
+  const W=400,H=400,cx=W/2,cy=H/2,R=140,nodeR=24;
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'#0d0d0e'}));
+  svg.appendChild(svgEl('circle',{cx,cy,r:R,fill:'none',stroke:'#2a2a30','stroke-width':1}));
+
+  const progChords=window._activeProgChords;
+  const stepIdx=activeStepIdx;
+
+  if(progChords && progChords.length>1){
+    for(let i=0;i<progChords.length-1;i++){
+      const [x1,y1]=circleNoteXY(fifthsPos(progChords[i].degPc),R,cx,cy);
+      const [x2,y2]=circleNoteXY(fifthsPos(progChords[i+1].degPc),R,cx,cy);
+      let opacity=0.18,width=1.5,color='#5a5a60',dashed=true;
+      if(stepIdx!==null){
+        if(i+1===stepIdx){opacity=0.95;width=2.5;color='var(--gold)';dashed=false;}
+        else if(i<stepIdx){opacity=0.45;width=1.5;color='var(--gold)';dashed=false;}
+      }
+      const attrs={x1,y1,x2,y2,stroke:color,'stroke-width':width,'stroke-opacity':opacity};
+      if(dashed)attrs['stroke-dasharray']='4,4';
+      svg.appendChild(svgEl('line',attrs));
+    }
+    progChords.forEach((ch,i)=>{
+      const [bx,by]=circleNoteXY(fifthsPos(ch.degPc),R+36,cx,cy);
+      const isCurrent=i===stepIdx;
+      svg.appendChild(svgEl('circle',{cx:bx,cy:by,r:8,fill:isCurrent?'var(--gold)':'#2a2a30',stroke:isCurrent?'var(--gold)':'#4a4a50','stroke-width':1}));
+      svg.appendChild(svgEl('text',{x:bx,y:by+3,'font-size':8,'font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle',fill:isCurrent?'#000':'#999'},String(i+1)));
+    });
+  }
+
+  const chordSet=new Set(chordPcs);
+  if(chordPcs.length>=2){
+    const pts=chordPcs.map(p=>circleNoteXY(fifthsPos(p),R,cx,cy));
+    const pathD=pts.map((pt,i)=>`${i===0?'M':'L'}${pt[0]},${pt[1]}`).join(' ')+' Z';
+    svg.appendChild(svgEl('path',{d:pathD,fill:'none',stroke:'var(--gold)','stroke-width':1.5,'stroke-opacity':0.5}));
+  }
+
+  for(let i=0;i<12;i++){
+    const p=(i*7)%12;
+    const [x,y]=circleNoteXY(i,R,cx,cy);
+    const inChord=chordSet.has(p);
+    const inScale=scaleSet.has(p)&&!inChord;
+    const iv=chordIvMap[p];
+    const isRoot=iv===0&&inChord;
+    const color=iv!==undefined?INTERVAL_COLORS[iv]:null;
+    let fill='#1a1a1e',stroke='#3a3a40',textColor='#5a5a58',r=nodeR*0.78;
+    if(isRoot){fill=INTERVAL_COLORS[0];stroke=INTERVAL_COLORS[0];textColor='#000';r=nodeR;}
+    else if(inChord&&color){fill=color+'cc';stroke=color;textColor='#000';r=nodeR;}
+    else if(inScale){fill='#2a2a30';stroke='#4a4a50';textColor='#999';}
+    const g=svgEl('g',{style:'cursor:pointer'});
+    g.appendChild(svgEl('circle',{cx:x,cy:y,r,fill,stroke,'stroke-width':1.5}));
+    g.appendChild(svgEl('text',{x,y:y+4,'font-size':inChord?13:11,'font-family':'Space Mono, monospace','font-weight':inChord?700:400,'text-anchor':'middle',fill:textColor},NOTE_NAMES[p]));
+    g.addEventListener('click',()=>playNote(60+p));
+    svg.appendChild(g);
   }
 }
 
@@ -1643,14 +2009,16 @@ function showProgViz(chordPcs, rootPc, label){
   const scaleIvMap = {};
   SCALES[currentScale].intervals.forEach(iv=>{ scaleIvMap[(currentRoot+iv)%12]=iv; });
 
+  document.getElementById('prog-guitar-viz').style.display=currentView==='guitar'?'':'none';
+  document.getElementById('prog-piano-viz').style.display=currentView==='piano'?'':'none';
+  document.getElementById('prog-circle-viz').style.display=currentView==='circle'?'':'none';
+
   if(currentView==='guitar'){
-    document.getElementById('prog-guitar-viz').style.display='';
-    document.getElementById('prog-piano-viz').style.display='none';
     drawFretboardWithChord('prog-fretboard-svg', scaleSet, scaleIvMap, chordSet2, ivMap, rootPc, TUNINGS[currentTuning], numFrets);
-  } else {
-    document.getElementById('prog-guitar-viz').style.display='none';
-    document.getElementById('prog-piano-viz').style.display='';
+  } else if(currentView==='piano'){
     drawPianoWithChord('prog-piano-svg', scaleSet, scaleIvMap, chordSet2, ivMap, numOctaves, 840, 180);
+  } else {
+    drawProgCircle('prog-circle-svg', scaleSet, scaleIvMap, chordPcs, ivMap);
   }
 }
 
@@ -1795,6 +2163,7 @@ function updateProgChips(){
 function showProgStep(progChords){
   const ch = progChords[activeStepIdx];
   showProgViz(ch.chordPcs, ch.degPc, `${ch.name} (${ch.numeral}) — ${activeStepIdx+1}/${progChords.length}`);
+  playChord(chordPcsToMidi(ch.chordPcs, ch.degPc));
   selectedDegreeIdx = ch.di;
   buildProgKeyStrip();
 }
@@ -1811,6 +2180,7 @@ function buildProgMode(){
   updateGlobalPlayButton();
   document.getElementById('prog-guitar-viz').style.display = currentView==='guitar' ? '' : 'none';
   document.getElementById('prog-piano-viz').style.display = currentView==='piano' ? '' : 'none';
+  document.getElementById('prog-circle-viz').style.display = currentView==='circle' ? '' : 'none';
 }
 
 // ════════════════════════════════════════
@@ -1847,6 +2217,7 @@ function setView(v){
   currentView=v;
   document.getElementById('btn-guitar').className='view-btn'+(v==='guitar'?' active':'');
   document.getElementById('btn-piano').className='view-btn'+(v==='piano'?' active':'');
+  document.getElementById('btn-circle').className='view-btn'+(v==='circle'?' active':'');
   document.getElementById('tuning-group').style.display=v==='guitar'?'':'none';
   document.getElementById('frets-group').style.display=v==='guitar'?'':'none';
   document.getElementById('octaves-group').style.display=v==='piano'?'':'none';
@@ -1858,7 +2229,11 @@ function refreshActiveSelection(){
   // If a chord is selected, re-trigger it to update guitar/piano visibility & sizing
   if(currentMode==='chord'&&selectedChord!==null){
     const activeCard=document.querySelector('.chord-card.active');
-    if(activeCard)activeCard.click();
+    if(activeCard){
+      suppressChordSound=true;
+      activeCard.click();
+      suppressChordSound=false;
+    }
   }
   // Re-draw prog viz if a degree is selected
   if(currentMode==='prog'&&selectedDegreeIdx!==null){
@@ -1888,8 +2263,12 @@ function setMode(m){
 // INSTRUCTIONS
 // ════════════════════════════════════════
 const BUG_REPORT_EMAIL = 'RogueTheoryStudio@pm.me';
-const APP_VERSION = 'v1.23';
-const APP_VERSION_DATE = 'June 22, 2026';
+const APP_VERSION = 'v2.0';
+const APP_VERSION_DATE = 'June 23, 2026';
+const splashVersionFooter = document.getElementById('splash-version-footer');
+if(splashVersionFooter){
+  splashVersionFooter.textContent = `${APP_VERSION} — ${APP_VERSION_DATE} · © ${new Date().getFullYear()} Ian Dominguez / Rogue Theory Studio`;
+}
 function bugReportSection(){
   return helpSection('Found a Bug? Have a Suggestion?', `
     If you find something in the app that is broken, inaccurate, or confusing.<br>
@@ -1922,9 +2301,17 @@ function buildInstructions(){
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">How to use</div>
     <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Music Theory Visualizer</h2>
     ${helpSection('Header Layout', helpList([
-      '<b>ABOUT / HOW TO USE / 📤 SHARE / ⟳ RESYNC</b> — top row. Resync force-refreshes the app if it ever seems out of date or stuck on an old version.',
-      '<b>🎸 GUITAR / 🎹 PIANO</b> — switches every visualizer between fretboard and keyboard, across all three modes.',
+      '<b>ABOUT / HOW TO USE / 📤 SHARE / 🔊 SOUND / ⟳ RESYNC</b> — top row. Resync force-refreshes the app if it ever seems out of date or stuck on an old version.',
+      '<b>🎸 GUITAR / 🎹 KEYBOARD</b> — switches every visualizer between fretboard and keyboard, across all three modes.',
       '<b>SCALES / CHORDS / PROGRESSIONS</b> — the three main modes.',
+    ]))}
+    ${helpSection('Sound', helpList([
+      '<b>🔊 SOUND</b> in the header toggles audio on/off for the whole app — tap it again to mute.',
+      '<b>Tap any note</b> on the fretboard or keyboard, in any mode, to hear it played.',
+      '<b>Tap a chord card</b> in Chords mode to hear the full chord.',
+      'In Progressions mode, sound only plays during actual playback — press <b>▶ START</b> on the playback bar to hear each chord as it steps through. Just selecting a progression or card stays silent.',
+      'Guitar and Keyboard each have their own tone — switching views changes the sound, not just the visual.',
+      'This is a synthesized approximation, not a recording — we are still tuning it for realism, so expect it to keep improving in future updates.',
     ]))}
     ${helpSection('Top Controls Bar', helpList([
       '<b>Root Note</b> — the key centre. Every scale, chord, and progression updates instantly.',
@@ -1934,7 +2321,7 @@ function buildInstructions(){
     ${helpSection('Frets / Octaves Row', helpList([
       'Sits directly above whichever fretboard or keyboard is currently on screen, in every mode.',
       '<b>Frets</b> (Guitar view) — 12, 15, or 17 frets.',
-      '<b>Octaves</b> (Piano view) — 1, 2, or 3 octaves of keyboard.',
+      '<b>Octaves</b> (Keyboard view) — 1, 2, or 3 octaves of keyboard.',
     ]))}
     ${helpSection('SCALES Mode', helpList([
       'Shows the selected scale across the full fretboard or keyboard.',
@@ -1946,7 +2333,7 @@ function buildInstructions(){
       'A fretboard/keyboard at the top shows the current scale for context, the same way Scales mode does.',
       'Four chord-type tabs: <b>Triads · 7th Chords · Extended · Add/Other</b>.',
       'Cards are generated for every chord type on every scale degree. <b>Bright</b> = diatonic (all notes in the scale). <b>Dimmed</b> = non-diatonic (chromatic or borrowed — not wrong, just outside the key).',
-      '<b>Guitar view:</b> each card shows a mini fret diagram. <b>Piano view:</b> each card shows a mini one-octave keyboard preview.',
+      '<b>Guitar view:</b> each card shows a mini fret diagram. <b>Keyboard view:</b> each card shows a mini one-octave keyboard preview.',
       '<b>Tap any card</b> to expand: larger diagram, colour-coded note pills, chord description, a full keyboard panel, and the full fretboard showing every position that chord appears.',
     ]) + helpSample('help-sample-chord','Example: C Major chord — R, 3, 5 labelled', 160))}
     ${helpSection('PROGRESSIONS Mode', helpList([
@@ -1954,7 +2341,7 @@ function buildInstructions(){
       '<b>Playback bar</b> — a global <b>▶ START / ⏹ STOP</b> button plus <b>SLOW / MED / FAST</b> speed buttons. They always control whichever progression is currently selected, even mid-playback. The first progression is selected automatically when you arrive in this mode.',
       '<b>Progression list</b> — 20 progressions across 5 categories (Classic Major, Classic Minor, Modal &amp; Exotic, Jazz &amp; Advanced, Blues &amp; Rock).',
       '<b>Tap anywhere on a progression card</b>, or any individual Roman numeral chip, to select it and jump to that chord on the neck/keys — then use the playback bar above to step through it automatically.',
-      'In Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Piano view highlights chord keys brightly over dimly-lit scale keys.',
+      'In Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Keyboard view highlights chord keys brightly over dimly-lit scale keys.',
     ]) + `<div style="margin-top:12px;">
       <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;text-align:center;">Example: I – IV – V – I in C Major</div>
       <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
@@ -1988,20 +2375,24 @@ function buildAbout(){
   const wrap = document.getElementById('mode-about');
   if(wrap.dataset.built) return;
   wrap.dataset.built = '1';
-  wrap.innerHTML = `<div style="max-width:560px;margin:0 auto;">
+  wrap.innerHTML = `<div style="max-width:760px;margin:0 auto;">
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">About</div>
     <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Created by Ian Dominguez</h2>
     ${helpSection('Bio',`
-      <img src="IanD_BioPic.JPG" alt="Ian Dominguez" style="display:block;width:120px;height:120px;border-radius:50%;object-fit:cover;margin:0 auto 16px;border:2px solid var(--gold);" onerror="this.style.display='none'">
-      I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard)
-      <br><br>
-      With no formal training in Music Theory... I created this app because I was tired of guessing how music theory works.
-      <br><br>
-      Use this app to quickly visualize the mystery of music theory, special tunings, unique scales, every chord, and how it works across music progressions.
-      <br><br>
-      If you like this app, please consider donating to my Venmo.
-      <br><br>
-      Thank you very much, and Enjoy!
+      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+        <img src="IanD_BioPic.JPG" alt="Ian Dominguez" style="flex:0 0 auto;display:block;width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);" onerror="this.style.display='none'">
+        <div style="flex:1 1 280px;min-width:0;">
+          I am a principal game designer, indie writer, indie artist, and self-taught amateur musician (both Guitar and Keyboard)
+          <br><br>
+          With no formal training in Music Theory... I created this app because I was tired of guessing how music theory works.
+          <br><br>
+          Use this app to quickly visualize the mystery of music theory, special tunings, unique scales, every chord, and how it works across music progressions.
+          <br><br>
+          If you like this app, please consider donating to my Venmo.
+          <br><br>
+          Thank you very much, and Enjoy!
+        </div>
+      </div>
     `)}
     ${helpSection('Links',`
       <div style="display:flex;flex-direction:column;gap:8px;">
@@ -2041,14 +2432,15 @@ function render(){
     const ivMap={};
     SCALES[currentScale].intervals.forEach(iv=>{ivMap[(currentRoot+iv)%12]=iv;});
 
+    document.getElementById('guitar-view-scale').style.display=currentView==='guitar'?'':'none';
+    document.getElementById('piano-view-scale').style.display=currentView==='piano'?'':'none';
+    document.getElementById('circle-view-scale').style.display=currentView==='circle'?'':'none';
     if(currentView==='guitar'){
-      document.getElementById('guitar-view-scale').style.display='';
-      document.getElementById('piano-view-scale').style.display='none';
       drawFretboard('fretboard-svg',scaleSet,ivMap,openStrings,numFrets);
-    } else {
-      document.getElementById('guitar-view-scale').style.display='none';
-      document.getElementById('piano-view-scale').style.display='';
+    } else if(currentView==='piano'){
       drawPiano('piano-svg-scale',scaleSet,ivMap,numOctaves,840,180);
+    } else {
+      drawCircleOfFifths('circle-svg-scale',scaleSet,ivMap);
     }
     buildLegend();
     buildInfoCard();
@@ -2058,20 +2450,7 @@ function render(){
   }
 
   if(currentMode==='chord'){
-    const scaleSet=getScaleSet(currentRoot,currentScale);
-    const ivMap={};
-    SCALES[currentScale].intervals.forEach(iv=>{ivMap[(currentRoot+iv)%12]=iv;});
-
-    if(currentView==='guitar'){
-      document.getElementById('guitar-view-chord').style.display='';
-      document.getElementById('piano-view-chord').style.display='none';
-      drawFretboard('chord-mode-fretboard-svg',scaleSet,ivMap,openStrings,numFrets);
-    } else {
-      document.getElementById('guitar-view-chord').style.display='none';
-      document.getElementById('piano-view-chord').style.display='';
-      drawPiano('chord-mode-piano-svg',scaleSet,ivMap,numOctaves,840,180);
-    }
-
+    updateChordModeViz();
     buildChordTypeTabs();
     buildChordCards();
   }
@@ -2098,8 +2477,8 @@ function relocateFretsOctavesRow(){
 // ════════════════════════════════════════
 // EVENTS
 // ════════════════════════════════════════
-document.getElementById('root-select').addEventListener('change',e=>{currentRoot=parseInt(e.target.value);selectedChord=null;stopProgPlayback();selectedDegreeIdx=null;render();});
-document.getElementById('scale-select').addEventListener('change',e=>{currentScale=e.target.value;selectedChord=null;stopProgPlayback();selectedDegreeIdx=null;render();});
+document.getElementById('root-select').addEventListener('change',e=>{currentRoot=parseInt(e.target.value);selectedChord=null;window._selectedChordViz=null;stopProgPlayback();selectedDegreeIdx=null;render();});
+document.getElementById('scale-select').addEventListener('change',e=>{currentScale=e.target.value;selectedChord=null;window._selectedChordViz=null;stopProgPlayback();selectedDegreeIdx=null;render();});
 document.getElementById('tuning-select').addEventListener('change',e=>{currentTuning=e.target.value;render();});
 document.querySelectorAll('.tog-btn[data-frets]').forEach(btn=>{
   btn.addEventListener('click',()=>{
