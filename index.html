@@ -1888,6 +1888,8 @@ function setMode(m){
 // INSTRUCTIONS
 // ════════════════════════════════════════
 const BUG_REPORT_EMAIL = 'RogueTheoryStudio@pm.me';
+const APP_VERSION = 'v1.1';
+const APP_VERSION_DATE = 'June 22, 2026';
 function bugReportSection(){
   return helpSection('Found a Bug? Have a Suggestion?', `
     If you find something in the app that is broken, inaccurate, or confusing.<br>
@@ -2015,6 +2017,10 @@ function buildAbout(){
       <a href="https://www.venmo.com/u/IDMNGZ" target="_blank" rel="noopener" class="about-venmo-btn">💜 DONATE</a>
     `)}
     ${bugReportSection()}
+    <div style="text-align:center;margin-top:24px;font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.04em;line-height:1.8;">
+      Music Theory Visualizer ${APP_VERSION} — ${APP_VERSION_DATE}<br>
+      © ${new Date().getFullYear()} Ian Dominguez / Rogue Theory Studio. All rights reserved.
+    </div>
   </div>`;
 }
 
