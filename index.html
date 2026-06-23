@@ -989,7 +989,7 @@ function drawPiano(svgId,highlightSet,intervalMap,octaves,viewW,viewH){
 // ════════════════════════════════════════
 // MINI CHORD DIAGRAM (fret diagram per card)
 // ════════════════════════════════════════
-function makeChordDiagram(chordPcs, rootPc, tuning, container, size, startFretHint){
+function makeChordDiagram(chordPcs, rootPc, tuning, container, size, startFretHint, ivMap){
   const openStrings=TUNINGS[tuning];
   const lo = startFretHint ?? 0;
   const hi = lo + 4;
@@ -1062,10 +1062,10 @@ function makeChordDiagram(chordPcs, rootPc, tuning, container, size, startFretHi
     const y=topM+(relFret-0.5)*fretSpacing;
     const notePc=pc(openStrings[s]+fret);
     const isRoot=notePc===rootPc;
-    const chordIv=chordPcs.indexOf(notePc);
-    const color=chordIv>=0?INTERVAL_COLORS[CHORD_TYPES[currentChordType].shapes[selectedChord]?.intervals[chordIv]??0]:'#888';
+    const iv=ivMap?ivMap[notePc]:(chordPcs.indexOf(notePc)>=0?0:undefined);
+    const color=iv!==undefined?INTERVAL_COLORS[iv]:'#888';
     svg.appendChild(svgEl('circle',{cx:x,cy:y,r:5.5,fill:isRoot?INTERVAL_COLORS[0]:color,opacity:0.9}));
-    const lbl=isRoot?'R':INTERVAL_LABELS[CHORD_TYPES[currentChordType].shapes[selectedChord]?.intervals[chordIv]??0];
+    const lbl=isRoot?'R':(iv!==undefined?INTERVAL_LABELS[iv]:NOTE_NAMES[notePc]);
     svg.appendChild(svgEl('text',{x,y:y+3.5,'font-size':6,fill:isRoot?'#000':'#fff','font-family':'Space Mono, monospace','font-weight':700,'text-anchor':'middle'},lbl));
   }
 
@@ -1128,7 +1128,8 @@ function buildChordCards(){
           drawMiniPiano(miniSvg,chordSet,ivMapMini);
           diag.appendChild(miniSvg);
         } else {
-          makeChordDiagram(chordPcs,degPc,currentTuning,diag,110);
+          const ivMapDiag={};chordPcs.forEach((p,i)=>{ivMapDiag[p]=shape.intervals[i]??0;});
+          makeChordDiagram(chordPcs,degPc,currentTuning,diag,110,undefined,ivMapDiag);
         }
       }
     });
@@ -1167,7 +1168,7 @@ function selectChord(key,di,rootPc,chordPcs,shape,label){
   const diagWrap=document.getElementById('chord-detail-diagram');
   diagWrap.innerHTML='';
   if(currentView==='guitar'){
-    makeChordDiagram(chordPcs,rootPc,currentTuning,diagWrap,140);
+    makeChordDiagram(chordPcs,rootPc,currentTuning,diagWrap,140,undefined,ivMap);
     diagWrap.style.display='';
   } else {
     diagWrap.style.display='none';
@@ -1626,7 +1627,7 @@ function showProgViz(chordPcs, rootPc, label){
       posLabel.style.cssText='font-family:"Space Mono",monospace;font-size:8px;color:var(--muted);text-align:center;margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase;';
       posLabel.textContent = lo===0?'Open Position':`Position ${lo}`;
       box.appendChild(posLabel);
-      makeChordDiagram(chordPcs, rootPc, currentTuning, box, 110, lo);
+      makeChordDiagram(chordPcs, rootPc, currentTuning, box, 110, lo, ivMap);
       diagRow.appendChild(box);
     });
     if(shown===0){
