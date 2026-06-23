@@ -2313,7 +2313,6 @@ function buildInstructions(){
       'In <b>Scales</b> mode, all three show the current scale\'s notes — root in gold, others in their interval colour.',
       'In <b>Chords</b> mode, all three dim the background scale and brighten the selected chord\'s notes — the fretboard shows fingering, the keyboard highlights keys, and the Circle connects the chord\'s notes with lines to sketch its "shape."',
       'In <b>Progressions</b> mode, all three highlight the active chord as it steps through — the Circle additionally draws the whole progression\'s path around the ring: numbered badges mark each chord\'s position in sequence, the segment you just moved along glows brightest gold, already-travelled segments stay lit, and upcoming segments are dim and dashed.',
-      '<b>Tap any note</b>, anywhere on any of the three, to hear it played.',
     ]))}
     ${helpSection('Sound', helpList([
       '<b>🔊 SOUND</b> in the header toggles audio on/off for the whole app — tap it again to mute.',
@@ -2363,7 +2362,17 @@ function buildInstructions(){
         ${[[0,'#f0a500','R Root'],[2,'#60b8d0','2'],[3,'#7dc85a','♭3'],[4,'#a0c860','3'],[5,'#8b7fe8','4'],[6,'#e07a30','♭5 blue note'],[7,'#50c8a0','5'],[9,'#60a8d0','6'],[10,'#e0c040','♭7'],[11,'#c07040','7'],[1,'#e05a6a','♭2'],[8,'#d060b8','♭6']].map(([,c,l])=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:50%;background:${c};display:inline-block;flex-shrink:0"></span>${l}</span>`).join('')}
       </div>
     `)}
-    ${helpSection('Save as iPhone Home Screen App','Open in <b>Safari</b> → tap the <b>Share</b> button (↑ box) → <b>"Add to Home Screen"</b>. Launches fullscreen, works fully offline. No internet needed after the first load. If the app ever seems stuck on an old version after an update, tap <b>⟳ RESYNC</b> in the header.')}
+    <div style="background:rgba(240,165,0,.08);border:1px solid var(--gold);border-radius:12px;padding:18px;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:700;color:var(--gold);margin-bottom:10px;">📲 Save as iPhone Home Screen App</div>
+      <div style="font-size:13px;color:var(--text);opacity:.9;line-height:1.7;">
+        ${helpList([
+          'Open this app in <b>Safari</b>.',
+          'Tap the <b>Share</b> button (the ↑ box icon).',
+          'Tap <b>"Add to Home Screen"</b>.',
+        ])}
+        Launches fullscreen, works fully offline. No internet needed after the first load. If the app ever seems stuck on an old version after an update, tap <b>⟳ RESYNC</b> in the header.
+      </div>
+    </div>
     ${bugReportSection()}
   </div>`;
 
