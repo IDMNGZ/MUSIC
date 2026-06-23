@@ -442,6 +442,7 @@ body.splash-locked{overflow:hidden;height:100vh;}
     <div class="header-secondary-nav">
       <button class="secondary-btn" onclick="setMode('about')">ABOUT</button>
       <button class="secondary-btn" onclick="setMode('help')">HOW TO USE</button>
+      <button class="secondary-btn" id="btn-share" onclick="shareApp()" title="Share this app">📤 SHARE</button>
       <button class="secondary-btn" id="btn-resync" onclick="forceRefresh()" title="Refresh / Resync the app">⟳ RESYNC</button>
     </div>
     <div class="header-divider"></div>
@@ -647,6 +648,25 @@ function forceRefresh(){
   const url=new URL(window.location.href);
   url.searchParams.set('_r',Date.now());
   window.location.replace(url.toString());
+}
+function shareApp(){
+  const shareUrl = 'https://idmngz.github.io/MUSIC/';
+  const shareData = {
+    title: 'Music Theory Visualizer',
+    text: 'Check out this app for visualizing scales, chords, tunings, and progressions:',
+    url: shareUrl,
+  };
+  if(navigator.share){
+    navigator.share(shareData).catch(()=>{});
+  } else if(navigator.clipboard){
+    navigator.clipboard.writeText(shareUrl).then(()=>{
+      const btn=document.getElementById('btn-share');
+      if(!btn) return;
+      const original=btn.textContent;
+      btn.textContent='✓ LINK COPIED';
+      setTimeout(()=>{ btn.textContent=original; }, 1800);
+    }).catch(()=>{});
+  }
 }
 // ════════════════════════════════════════
 // DATA
