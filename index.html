@@ -1902,6 +1902,15 @@ function helpSection(title, body){
     <div style="font-size:13px;color:var(--text);opacity:.8;line-height:1.7;">${body}</div>
   </div>`;
 }
+function helpList(items){
+  return `<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">${items.map(i=>`<li style="margin-bottom:6px;">${i}</li>`).join('')}</ul>`;
+}
+function helpSample(id, label, maxWidth, innerHTML){
+  return `<div style="margin-top:12px;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;text-align:center;">${label}</div>
+    <div id="${id}" style="max-width:${maxWidth||280}px;margin:0 auto;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2);padding:8px;box-sizing:border-box;">${innerHTML||''}</div>
+  </div>`;
+}
 
 function buildInstructions(){
   const wrap = document.getElementById('mode-help');
@@ -1910,39 +1919,46 @@ function buildInstructions(){
   wrap.innerHTML = `<div style="max-width:700px;margin:0 auto;">
     <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">How to use</div>
     <h2 style="font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">Music Theory Visualizer</h2>
-    ${helpSection('Header Layout',`
-      <b>ABOUT / HOW TO USE / ⟳ RESYNC</b> — top row. Resync force-refreshes the app if it ever seems out of date or stuck on an old version.<br><br>
-      <b>🎸 GUITAR / 🎹 PIANO</b> — switches every visualizer between fretboard and keyboard, across all three modes.<br><br>
-      <b>SCALES / CHORDS / PROGRESSIONS</b> — the three main modes.
-    `)}
-    ${helpSection('Top Controls Bar',`
-      <b>Root Note</b> — the key centre. Every scale, chord, and progression updates instantly.<br><br>
-      <b>Scale</b> — 24 scales from Major and Minor to Gypsy, Arabian, Egyptian, Japanese, and more. Changes notes everywhere and the diatonic chords in Chords and Progressions modes.<br><br>
-      <b>Tuning</b> — 20 guitar tunings: Standard, E♭/D/C Standard, all Drop tunings (D through A), DADGAD and its half-/whole-step-down variants, Open G/D/E/A/C/Dm, Double Drop D, and New Standard. Open-string labels update live just below the Tuning menu (Guitar view only).
-    `)}
-    ${helpSection('Frets / Octaves Row',`
-      Sits directly above whichever fretboard or keyboard is currently on screen, in every mode.<br><br>
-      <b>Frets</b> (Guitar view) — 12, 15, or 17 frets.<br><br>
-      <b>Octaves</b> (Piano view) — 1, 2, or 3 octaves of keyboard.
-    `)}
-    ${helpSection('SCALES Mode','Shows the selected scale across the full fretboard or keyboard. <b>Gold filled dot</b> = root note. <b>Coloured outline dots</b> = other scale tones, labelled by interval (♭3, 5, ♭7…). The info card shows the notes in your key, the interval formula, step pattern (W/H), and genres. Tap any scale in the browser grid at the bottom to switch instantly.')}
-    ${helpSection('CHORDS Mode',`
-      A fretboard/keyboard at the top shows the current scale for context, the same way Scales mode does.<br><br>
-      Four chord-type tabs: <b>Triads · 7th Chords · Extended · Add/Other</b>.<br><br>
-      Cards are generated for every chord type on every scale degree. <b>Bright</b> = diatonic (all notes in the scale). <b>Dimmed</b> = non-diatonic (chromatic or borrowed — not wrong, just outside the key).<br><br>
-      <b>Guitar view:</b> each card shows a mini fret diagram. <b>Piano view:</b> each card shows a mini one-octave keyboard preview.<br><br>
-      <b>Tap any card</b> to expand: larger diagram, colour-coded note pills, chord description, a full keyboard panel, and the full fretboard showing every position that chord appears.
-    `)}
-    ${helpSection('PROGRESSIONS Mode',`
-      <b>Diatonic chord strip</b> — every chord in the current key with its Roman numeral and harmonic function:<br>
-      <span style="color:#50c8a0">●</span> <b>Tonic</b> (I, iii, vi) — home &amp; rest &nbsp;|&nbsp;
-      <span style="color:#8b7fe8">●</span> <b>Subdominant</b> (ii, IV) — movement &nbsp;|&nbsp;
-      <span style="color:#e05a6a">●</span> <b>Dominant</b> (V, vii°) — tension<br><br>
-      <b>Playback bar</b> — a global <b>▶ START / ⏹ STOP</b> button plus <b>SLOW / MED / FAST</b> speed buttons. They always control whichever progression is currently selected, even mid-playback. The first progression in the list is selected automatically when you arrive in this mode.<br><br>
-      <b>Progression list</b> — 20 progressions across 5 categories (Classic Major, Classic Minor, Modal &amp; Exotic, Jazz &amp; Advanced, Blues &amp; Rock). Each row shows the Roman numerals for that key.<br><br>
-      <b>Tap anywhere on a progression card</b>, or any individual Roman numeral chip, to select it and jump to that chord on the neck/keys — then use the playback bar above to step through it automatically.<br><br>
-      In Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Piano view highlights chord keys brightly over dimly-lit scale keys.
-    `)}
+    ${helpSection('Header Layout', helpList([
+      '<b>ABOUT / HOW TO USE / 📤 SHARE / ⟳ RESYNC</b> — top row. Resync force-refreshes the app if it ever seems out of date or stuck on an old version.',
+      '<b>🎸 GUITAR / 🎹 PIANO</b> — switches every visualizer between fretboard and keyboard, across all three modes.',
+      '<b>SCALES / CHORDS / PROGRESSIONS</b> — the three main modes.',
+    ]))}
+    ${helpSection('Top Controls Bar', helpList([
+      '<b>Root Note</b> — the key centre. Every scale, chord, and progression updates instantly.',
+      '<b>Scale</b> — 24 scales from Major and Minor to Gypsy, Arabian, Egyptian, Japanese, and more. Changes notes everywhere and the diatonic chords in Chords and Progressions modes.',
+      '<b>Tuning</b> — 20 guitar tunings: Standard, E♭/D/C Standard, all Drop tunings (D through A), DADGAD and its half-/whole-step-down variants, Open G/D/E/A/C/Dm, Double Drop D, and New Standard. Open-string labels update live just below the Tuning menu (Guitar view only).',
+    ]))}
+    ${helpSection('Frets / Octaves Row', helpList([
+      'Sits directly above whichever fretboard or keyboard is currently on screen, in every mode.',
+      '<b>Frets</b> (Guitar view) — 12, 15, or 17 frets.',
+      '<b>Octaves</b> (Piano view) — 1, 2, or 3 octaves of keyboard.',
+    ]))}
+    ${helpSection('SCALES Mode', helpList([
+      'Shows the selected scale across the full fretboard or keyboard.',
+      '<b>Gold filled dot</b> = root note. <b>Coloured outline dots</b> = other scale tones, labelled by interval (♭3, 5, ♭7…).',
+      'The info card shows the notes in your key, the interval formula, step pattern (W/H), and genres.',
+      'Tap any scale in the browser grid at the bottom to switch instantly.',
+    ]) + helpSample('help-sample-scale','Example: C Major scale on guitar', 300, '<svg id="help-sample-scale-svg" viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;"></svg>'))}
+    ${helpSection('CHORDS Mode', helpList([
+      'A fretboard/keyboard at the top shows the current scale for context, the same way Scales mode does.',
+      'Four chord-type tabs: <b>Triads · 7th Chords · Extended · Add/Other</b>.',
+      'Cards are generated for every chord type on every scale degree. <b>Bright</b> = diatonic (all notes in the scale). <b>Dimmed</b> = non-diatonic (chromatic or borrowed — not wrong, just outside the key).',
+      '<b>Guitar view:</b> each card shows a mini fret diagram. <b>Piano view:</b> each card shows a mini one-octave keyboard preview.',
+      '<b>Tap any card</b> to expand: larger diagram, colour-coded note pills, chord description, a full keyboard panel, and the full fretboard showing every position that chord appears.',
+    ]) + helpSample('help-sample-chord','Example: C Major chord — R, 3, 5 labelled', 160))}
+    ${helpSection('PROGRESSIONS Mode', helpList([
+      '<b>Diatonic chord strip</b> — every chord in the current key with its Roman numeral and harmonic function: <span style="color:#50c8a0">●</span> <b>Tonic</b> (home &amp; rest), <span style="color:#8b7fe8">●</span> <b>Subdominant</b> (movement), <span style="color:#e05a6a">●</span> <b>Dominant</b> (tension).',
+      '<b>Playback bar</b> — a global <b>▶ START / ⏹ STOP</b> button plus <b>SLOW / MED / FAST</b> speed buttons. They always control whichever progression is currently selected, even mid-playback. The first progression is selected automatically when you arrive in this mode.',
+      '<b>Progression list</b> — 20 progressions across 5 categories (Classic Major, Classic Minor, Modal &amp; Exotic, Jazz &amp; Advanced, Blues &amp; Rock).',
+      '<b>Tap anywhere on a progression card</b>, or any individual Roman numeral chip, to select it and jump to that chord on the neck/keys — then use the playback bar above to step through it automatically.',
+      'In Guitar view the fretboard shows <b>scale notes as faint hollow rings</b> (context) and <b>chord tones as bright filled dots</b> (fingering) simultaneously. Piano view highlights chord keys brightly over dimly-lit scale keys.',
+    ]) + `<div style="margin-top:12px;">
+      <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;text-align:center;">Example: I – IV – V – I in C Major</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+        ${[['I','#50c8a0'],['IV','#8b7fe8'],['V','#e05a6a'],['I','#50c8a0']].map(([n,c])=>`<div style="font-family:'Space Mono',monospace;font-weight:700;font-size:13px;padding:8px 14px;border-radius:6px;border:1px solid ${c};color:${c};background:${c}18;">${n}</div>`).join('<span style="align-self:center;color:var(--muted2);font-size:12px;">→</span>')}
+      </div>
+    </div>`)}
     ${helpSection('Colour System — consistent across all modes &amp; views',`
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
         ${[[0,'#f0a500','R Root'],[2,'#60b8d0','2'],[3,'#7dc85a','♭3'],[4,'#a0c860','3'],[5,'#8b7fe8','4'],[6,'#e07a30','♭5 blue note'],[7,'#50c8a0','5'],[9,'#60a8d0','6'],[10,'#e0c040','♭7'],[11,'#c07040','7'],[1,'#e05a6a','♭2'],[8,'#d060b8','♭6']].map(([,c,l])=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:50%;background:${c};display:inline-block;flex-shrink:0"></span>${l}</span>`).join('')}
@@ -1951,6 +1967,19 @@ function buildInstructions(){
     ${helpSection('Save as iPhone Home Screen App','Open in <b>Safari</b> → tap the <b>Share</b> button (↑ box) → <b>"Add to Home Screen"</b>. Launches fullscreen, works fully offline. No internet needed after the first load. If the app ever seems stuck on an old version after an update, tap <b>⟳ RESYNC</b> in the header.')}
     ${bugReportSection()}
   </div>`;
+
+  // Render live sample visuals
+  const cMajorSet = getScaleSet(0, 'major');
+  const cMajorIvMap = {};
+  SCALES['major'].intervals.forEach(iv=>{ cMajorIvMap[iv] = iv; });
+  drawFretboard('help-sample-scale-svg', cMajorSet, cMajorIvMap, TUNINGS['standard'], 5);
+
+  const chordContainer = document.getElementById('help-sample-chord');
+  if(chordContainer){
+    const chordPcs=[0,4,7];
+    const chordIvMap={0:0,4:4,7:7};
+    makeChordDiagram(chordPcs, 0, 'standard', chordContainer, 140, 0, chordIvMap);
+  }
 }
 
 function buildAbout(){
