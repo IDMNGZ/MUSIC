@@ -12,7 +12,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 :root{
   --bg:#0a0a0b;--surface:#111113;--surface2:#18181c;--surface3:#1f1f24;
-  --border:#252529;--border2:#2e2e34;--text:#e4e2dd;--muted:#636268;--muted2:#4a494f;
+  --border:#252529;--border2:#2e2e34;--text:#e4e2dd;--muted:#636268;--muted2:#4a494f;--muted-bright:#9c9aa4;
   --gold:#f0a500;--gold-dim:rgba(240,165,0,0.08);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -87,8 +87,8 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 .ibt{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:7px;}
 .scale-name-display{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px;}
 .scale-name-display span{color:var(--gold);}
-.scale-character{font-size:12px;color:var(--muted);font-style:italic;margin-bottom:10px;}
-.scale-desc{font-size:12px;line-height:1.65;opacity:.85;}
+.scale-character{font-size:13px;color:var(--muted-bright);font-style:italic;margin-bottom:10px;}
+.scale-desc{font-size:13px;line-height:1.65;opacity:.92;}
 .intervals-display{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
 .interval-chip{font-family:'Space Mono',monospace;font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border2);color:var(--muted);}
 .interval-chip.root{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
@@ -118,7 +118,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 .chord-card.active{border-color:var(--gold);background:var(--gold-dim);}
 .chord-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
 .chord-card-name span{color:var(--gold);}
-.chord-card-type{font-size:10px;color:var(--muted);margin-bottom:8px;font-style:italic;}
+.chord-card-type{font-size:11px;color:var(--muted-bright);margin-bottom:8px;font-style:italic;}
 .chord-card-notes{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted2);margin-top:4px;letter-spacing:.03em;}
 .chord-card-quality{font-size:9px;color:var(--muted2);margin-top:2px;}
 
@@ -133,7 +133,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 @media(max-width:600px){.chord-detail.visible{grid-template-columns:1fr;}}
 .chord-detail-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;}
 .chord-detail-title span{color:var(--gold);}
-.chord-detail-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;}
+.chord-detail-desc{font-size:13px;color:var(--muted-bright);line-height:1.6;margin-top:8px;}
 .chord-notes-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
 .chord-note-pill{font-family:'Space Mono',monospace;font-size:11px;padding:3px 9px;border-radius:4px;border:1px solid var(--border2);color:var(--muted);}
 .chord-note-pill.root{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
@@ -145,8 +145,8 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 .scale-pill:hover{border-color:var(--border2);background:var(--surface2);}
 .scale-pill.active{border-color:var(--gold);background:var(--gold-dim);}
 .scale-pill-name{font-size:12px;font-weight:600;color:var(--text);}
-.scale-pill-char{font-size:10px;color:var(--muted);margin-top:2px;}
-.scale-pill-formula{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted2);margin-top:3px;}
+.scale-pill-char{font-size:11px;color:var(--muted-bright);margin-top:2px;}
+.scale-pill-formula{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted-bright);margin-top:3px;}
 
 /* ── PROGRESSIONS ── */
 .prog-key-strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:stretch;}
@@ -164,7 +164,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 .prog-degree.dominant-fn{border-top:2px solid #e05a6a;}
 .prog-numeral{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--text);line-height:1;}
 .prog-chord-name{font-size:13px;font-weight:600;color:var(--gold);}
-.prog-quality{font-size:10px;color:var(--muted);font-style:italic;}
+.prog-quality{font-size:11px;color:var(--muted-bright);font-style:italic;}
 .prog-function{font-size:8px;font-family:'Space Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
 .prog-function.T{color:#50c8a0;}
 .prog-function.SD{color:#8b7fe8;}
@@ -202,8 +202,8 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   box-shadow:0 0 8px rgba(240,165,0,.4);transform:translateY(-1px);
 }
 .prog-numeral-chip.was-active{opacity:.6;}
-.prog-item-desc{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
-.prog-item-genre{font-size:10px;color:var(--muted2);margin-top:3px;}
+.prog-item-desc{font-size:13px;color:var(--muted-bright);margin-top:5px;line-height:1.5;}
+.prog-item-genre{font-size:11px;color:var(--muted-bright);margin-top:3px;}
 
 /* playback controls */
 .prog-playback{display:flex;gap:6px;align-items:center;margin-top:8px;}
@@ -269,7 +269,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .prog-degree{min-width:60px;max-width:none;flex:1;padding:8px 6px;}
   .prog-numeral{font-size:14px;}
   .prog-chord-name{font-size:11px;}
-  .prog-quality{font-size:9px;}
+  .prog-quality{font-size:10px;}
   .prog-function{font-size:7px;}
   .prog-notes-mini{display:none;}
   .fn-legend{gap:8px;}
@@ -308,12 +308,12 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .legend-item{font-size:10px;}
   .scale-info{padding:14px;gap:12px;}
   .scale-name-display{font-size:16px;}
-  .scale-character{font-size:11px;}
-  .scale-desc{font-size:11px;}
+  .scale-character{font-size:12px;}
+  .scale-desc{font-size:12px;}
   .scale-grid{grid-template-columns:1fr 1fr;gap:5px;}
   .scale-pill{padding:8px 10px;}
   .scale-pill-name{font-size:11px;}
-  .scale-pill-char{font-size:9px;}
+  .scale-pill-char{font-size:10px;}
   .scale-pill-formula{display:none;}
 
   /* Chord mode */
@@ -322,7 +322,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
   .chord-cards{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;}
   .chord-card{padding:8px;}
   .chord-card-name{font-size:12px;}
-  .chord-card-type{font-size:9px;}
+  .chord-card-type{font-size:10px;}
   .chord-detail{padding:14px;}
   .chord-detail-title{font-size:18px;}
   .chord-notes-row{gap:4px;}
@@ -339,8 +339,8 @@ main{max-width:1100px;margin:0 auto;padding:18px 20px 60px;}
 
   .prog-item{padding:10px 12px;}
   .prog-item-name{font-size:12px;}
-  .prog-item-desc{font-size:10px;}
-  .prog-item-genre{font-size:9px;}
+  .prog-item-desc{font-size:12px;}
+  .prog-item-genre{font-size:10px;}
   .prog-numeral-chip{padding:7px 10px;font-size:11px;}
   .play-btn{padding:8px 14px;font-size:11px;}
 
@@ -1502,7 +1502,7 @@ function buildInfoCard(){
       <div class="ibt" style="margin-top:12px">Intervals</div>
       <div class="intervals-display">${chipsHTML}</div>
       <div class="ibt" style="margin-top:12px">Formula</div>
-      <div style="font-family:'Space Mono',monospace;font-size:10px;color:#636268;letter-spacing:.05em">${scale.formula}</div>
+      <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted-bright);letter-spacing:.05em">${scale.formula}</div>
       <div class="ibt" style="margin-top:12px">Common In</div>
       <div class="genres-display">${genresHTML}</div>
       ${tuningLine}
